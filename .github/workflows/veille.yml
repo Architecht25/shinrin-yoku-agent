@@ -1,0 +1,42 @@
+name: Veille shinrin-yoku
+
+on:
+  schedule:
+    # Chaque lundi à 5h05 UTC (≈ 7h05 en été / 6h05 en hiver, Europe/Brussels)
+    - cron: "5 5 * * 1"
+  workflow_dispatch: {}
+
+permissions:
+  contents: write
+
+jobs:
+  veille:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - run: npm ci
+
+      - run: node src/index.js
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          SMTP_HOST: smtp.resend.com
+          SMTP_PORT: "587"
+          SMTP_SECURE: "false"
+          SMTP_USER: resend
+          SMTP_PASS: ${{ secrets.SMTP_PASS }}
+          SMTP_FROM: "Veille Shinrin-yoku <veille-shinrin-yoku@ren0vate.be>"
+          RECIPIENT_EMAIL_1: robin@manage-green.be
+          RECIPIENT_EMAIL_2: amicie@manage-green.be
+
+      - name: Commit et push des nouvelles fiches
+        run: |
+          git config user.name "veille-shinrin-yoku-bot"
+          git config user.email "veille-shinrin-yoku-bot@users.noreply.github.com"
+          git add data/db.json veille-shinrin-yoku/
+          git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
+          git push

@@ -1,0 +1,20 @@
+{
+  "name": "shinrin-yoku-agent",
+  "version": "1.0.0",
+  "description": "Agent de veille scientifique sur le shinrin-yoku (bain de forêt) pour Braña Sana / La Borbolla",
+  "type": "module",
+  "private": true,
+  "main": "src/index.js",
+  "scripts": {
+    "veille": "node src/index.js",
+    "export": "node src/export.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.32.1",
+    "dotenv": "^16.4.5",
+    "nodemailer": "^9.0.3"
+  }
+}
