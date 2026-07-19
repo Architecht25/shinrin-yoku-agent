@@ -101,6 +101,8 @@ export async function extractFiche(client, article) {
     lien: article.url || doi_ou_lien || null,
     source: article.source,
     pmid: article.pmid || null,
+    origine_recherche: article.origineRecherche || 'mot-clé',
+    chercheur_reference: article.chercheurReference || null,
     ajoute_le: article._runDate,
   };
 }

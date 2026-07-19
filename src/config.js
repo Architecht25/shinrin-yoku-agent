@@ -11,6 +11,7 @@ export const config = {
       process.env.PUBMED_QUERY ||
       '"shinrin-yoku"[Title/Abstract] OR "forest bathing"[Title/Abstract] OR "forest therapy"[Title/Abstract] OR "nature therapy"[Title/Abstract]',
     maxResults: Number(process.env.PUBMED_MAX_RESULTS || 20),
+    referenceAuthorMaxResults: Number(process.env.PUBMED_REFERENCE_AUTHOR_MAX_RESULTS || 10),
   },
 
   smtp: {

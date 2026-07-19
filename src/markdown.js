@@ -5,8 +5,13 @@ function ficheToMarkdown(fiche) {
       ? `[Lien source](${fiche.lien})`
       : 'non disponible';
 
+  const titre =
+    fiche.origine_recherche === 'reference'
+      ? `## [Référence — ${fiche.chercheur_reference || '?'}] ${fiche.titre}`
+      : `## ${fiche.titre}`;
+
   const lignes = [
-    `## ${fiche.titre}`,
+    titre,
     '',
     `- **Auteurs** : ${fiche.auteurs || 'non précisé'}`,
     `- **Date** : ${fiche.date || 'non précisée'}`,

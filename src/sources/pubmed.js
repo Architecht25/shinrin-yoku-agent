@@ -10,7 +10,20 @@ function commonParams() {
   return params;
 }
 
+// NCBI limite les E-utilities à 3 requêtes/seconde sans clé API (10/s avec).
+// Un run complet enchaîne plusieurs appels (recherche mot-clé + 2 chercheurs de référence) ;
+// ce délai minimal entre requêtes évite un 429 sur un run sans PUBMED_API_KEY configurée.
+const MIN_DELAY_MS = config.pubmed.apiKey ? 110 : 400;
+let lastRequestAt = 0;
+
+async function throttle() {
+  const wait = lastRequestAt + MIN_DELAY_MS - Date.now();
+  if (wait > 0) await new Promise((resolve) => setTimeout(resolve, wait));
+  lastRequestAt = Date.now();
+}
+
 async function fetchJson(url) {
+  await throttle();
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`PubMed API — HTTP ${res.status} pour ${url}`);
@@ -19,6 +32,7 @@ async function fetchJson(url) {
 }
 
 async function fetchText(url) {
+  await throttle();
   const res = await fetch(url);
   if (!res.ok) {
     throw new Error(`PubMed API — HTTP ${res.status} pour ${url}`);
@@ -142,5 +156,35 @@ export async function fetchRecentPubmedArticles({
   maxResults = config.pubmed.maxResults,
 } = {}) {
   const pmids = await searchPmids(query, maxResults);
-  return fetchArticles(pmids);
+  const articles = await fetchArticles(pmids);
+  return articles.map((article) => ({ ...article, origineRecherche: 'mot-clé' }));
+}
+
+/**
+ * Chercheurs de référence du domaine — leurs publications sont recherchées en priorité,
+ * même si le titre/résumé n'emploie pas littéralement "shinrin-yoku"/"forest bathing".
+ * Le terme auteur est combiné (AND) avec les termes thématiques de config.pubmed.query :
+ * "Li Qing" et "Miyazaki Yoshifumi" sont des noms trop courants pour être utilisés seuls
+ * sur PubMed (des milliers d'homonymes) — l'intersection avec le sujet les désambiguïse.
+ */
+const REFERENCE_AUTHORS = [
+  { nom: 'Qing Li', pubmedAuthorTerm: '"Li Qing"[Author]' },
+  { nom: 'Yoshifumi Miyazaki', pubmedAuthorTerm: '"Miyazaki Yoshifumi"[Author]' },
+];
+
+export async function fetchReferenceAuthorArticles({
+  maxResultsPerAuthor = config.pubmed.referenceAuthorMaxResults,
+} = {}) {
+  const results = [];
+
+  for (const { nom, pubmedAuthorTerm } of REFERENCE_AUTHORS) {
+    const query = `${pubmedAuthorTerm} AND (${config.pubmed.query})`;
+    const pmids = await searchPmids(query, maxResultsPerAuthor);
+    const articles = await fetchArticles(pmids);
+    for (const article of articles) {
+      results.push({ ...article, origineRecherche: 'reference', chercheurReference: nom });
+    }
+  }
+
+  return results;
 }

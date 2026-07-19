@@ -10,8 +10,14 @@ marketing — uniquement des fiches d'étude structurées, factuelles et exporta
 1. Interroge PubMed (E-utilities, API officielle) sur `shinrin-yoku OR "forest
    bathing" OR "forest therapy"`, triés par date, jusqu'à `PUBMED_MAX_RESULTS`
    résultats (20 par défaut).
+1bis. Interroge en plus, en priorité, les publications des deux chercheurs de
+   référence du domaine — Qing Li (Nippon Medical School) et Yoshifumi Miyazaki
+   (Chiba University) — combinées aux mêmes termes thématiques (pour désambiguïser
+   les homonymes). Ces fiches sont marquées `origine_recherche: "reference"` pour
+   les distinguer des résultats de la recherche générique par mots-clés
+   (`origine_recherche: "mot-clé"`).
 2. Déduplique par rapport à la base déjà connue (clé : DOI, ou titre normalisé si
-   pas de DOI).
+   pas de DOI) — les deux lots (mots-clés + auteurs) sont dédupliqués ensemble.
 3. Pour chaque article réellement nouveau, extrait une fiche structurée via Claude
    (Sonnet) : titre, auteurs, date, DOI/lien, type d'étude, mécanisme évalué,
    résultat principal, niveau de preuve/limites, angle d'application possible pour

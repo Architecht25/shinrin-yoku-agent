@@ -3,7 +3,7 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 
 import { config } from './config.js';
-import { fetchRecentPubmedArticles } from './sources/pubmed.js';
+import { fetchRecentPubmedArticles, fetchReferenceAuthorArticles } from './sources/pubmed.js';
 import { loadStore, saveStore, partitionNewArticles } from './store.js';
 import { createAnthropicClient, extractFiche } from './extract.js';
 import { buildRunMarkdown } from './markdown.js';
@@ -24,8 +24,13 @@ async function main() {
   const runDate = todayIso();
   console.log(`[veille] Requête PubMed : ${config.pubmed.query} (max ${config.pubmed.maxResults} résultats)`);
 
-  const articles = await fetchRecentPubmedArticles();
-  console.log(`[veille] ${articles.length} article(s) récupéré(s) depuis PubMed.`);
+  const motCleArticles = await fetchRecentPubmedArticles();
+  console.log(`[veille] ${motCleArticles.length} article(s) récupéré(s) via recherche par mots-clés.`);
+
+  const referenceArticles = await fetchReferenceAuthorArticles();
+  console.log(`[veille] ${referenceArticles.length} article(s) récupéré(s) via recherche prioritaire par auteur (Qing Li, Yoshifumi Miyazaki).`);
+
+  const articles = [...motCleArticles, ...referenceArticles];
 
   const store = await loadStore();
   const nouveauxArticles = partitionNewArticles(store, articles);
