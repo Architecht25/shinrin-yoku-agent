@@ -1,4 +1,4 @@
-name: Veille shinrin-yoku
+name: Veille La Borbolla / Braña Sana
 
 on:
   schedule:
@@ -29,7 +29,7 @@ jobs:
           SMTP_SECURE: "false"
           SMTP_USER: resend
           SMTP_PASS: ${{ secrets.SMTP_PASS }}
-          SMTP_FROM: "Veille Shinrin-yoku <veille-shinrin-yoku@ren0vate.be>"
+          SMTP_FROM: "Veille La Borbolla <veille-shinrin-yoku@ren0vate.be>"
           RECIPIENT_EMAIL_1: robin@manage-green.be
           RECIPIENT_EMAIL_2: amicie@manage-green.be
 
@@ -37,6 +37,6 @@ jobs:
         run: |
           git config user.name "veille-shinrin-yoku-bot"
           git config user.email "veille-shinrin-yoku-bot@users.noreply.github.com"
-          git add data/db.json veille-shinrin-yoku/
+          git add data/db.json veille-la-borbolla/
           git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
           git push

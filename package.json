@@ -1,7 +1,7 @@
 {
   "name": "shinrin-yoku-agent",
   "version": "1.0.0",
-  "description": "Agent de veille scientifique sur le shinrin-yoku (bain de forêt) pour Braña Sana / La Borbolla",
+  "description": "Agent de veille scientifique multi-thématiques (bain de forêt, repos/sommeil, retour au manuel, mindfulness, nutrition/longévité, santé préventive) pour Braña Sana / La Borbolla",
   "type": "module",
   "private": true,
   "main": "src/index.js",

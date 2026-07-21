@@ -5,7 +5,8 @@ const MODEL = 'claude-sonnet-5';
 
 const FICHE_TOOL = {
   name: 'enregistrer_fiche',
-  description: "Enregistre la fiche structurée d'une étude scientifique sur le shinrin-yoku.",
+  description:
+    "Enregistre la fiche structurée d'une étude scientifique liée à l'un des piliers de veille de Braña Sana.",
   input_schema: {
     type: 'object',
     properties: {
@@ -31,7 +32,7 @@ const FICHE_TOOL = {
       },
       angle_brana_sana: {
         type: 'string',
-        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Laisser vide (chaîne vide) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
+        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Laisser vide (chaîne vide) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
       },
     },
     required: [
@@ -48,7 +49,7 @@ const FICHE_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu es un assistant de veille scientifique rigoureux pour Braña Sana, un centre bien-être en Asturies (La Borbolla). Ta seule tâche est d'extraire, à partir du titre et du résumé (abstract) d'une publication fournis par l'utilisateur, une fiche structurée factuelle.
+const SYSTEM_PROMPT = `Tu es un assistant de veille scientifique rigoureux pour Braña Sana, un centre bien-être en Asturies (La Borbolla), dont les piliers couvrent le bain de forêt, le repos/sommeil, le retour au travail manuel, la mindfulness, la nutrition/longévité et la santé préventive. Ta seule tâche est d'extraire, à partir du titre et du résumé (abstract) d'une publication fournis par l'utilisateur, une fiche structurée factuelle.
 
 Règles impératives :
 - Ne jamais surinterpréter un résultat. Distingue toujours une association statistique d'une preuve d'effet causal.
@@ -60,6 +61,7 @@ Règles impératives :
 
 function buildUserMessage(article) {
   return [
+    `Thématique de veille : ${article.thematiqueLabel}`,
     `Titre : ${article.title}`,
     article.authors?.length ? `Auteurs listés : ${article.authors.join(', ')}` : '',
     article.date ? `Date de publication : ${article.date}` : '',
@@ -101,6 +103,10 @@ export async function extractFiche(client, article) {
     lien: article.url || doi_ou_lien || null,
     source: article.source,
     pmid: article.pmid || null,
+    // Thématique attachée depuis la requête d'origine (src/themes.js) plutôt que devinée
+    // par Claude : on la connaît déjà avec certitude, pas besoin de la faire deviner.
+    thematique_id: article.thematiqueId,
+    thematique: article.thematiqueLabel,
     origine_recherche: article.origineRecherche || 'mot-clé',
     chercheur_reference: article.chercheurReference || null,
     ajoute_le: article._runDate,

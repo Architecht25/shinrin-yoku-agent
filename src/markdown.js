@@ -1,3 +1,5 @@
+import { THEMES } from './themes.js';
+
 function ficheToMarkdown(fiche) {
   const lienLigne = fiche.doi
     ? `[DOI: ${fiche.doi}](https://doi.org/${fiche.doi})`
@@ -7,8 +9,8 @@ function ficheToMarkdown(fiche) {
 
   const titre =
     fiche.origine_recherche === 'reference'
-      ? `## [Référence — ${fiche.chercheur_reference || '?'}] ${fiche.titre}`
-      : `## ${fiche.titre}`;
+      ? `### [Référence — ${fiche.chercheur_reference || '?'}] ${fiche.titre}`
+      : `### ${fiche.titre}`;
 
   const lignes = [
     titre,
@@ -33,29 +35,54 @@ function ficheToMarkdown(fiche) {
 }
 
 /**
- * Génère le Markdown d'un run de veille (uniquement les fiches nouvellement ajoutées).
+ * Regroupe les fiches par thématique, dans l'ordre de src/themes.js.
+ * Les fiches antérieures à l'introduction du champ thématique (toutes issues du
+ * bain de forêt, seule thématique existant alors) sont rattachées à "shinrin-yoku".
  */
-export function buildRunMarkdown(fiches, { runDate, query }) {
+function groupByTheme(fiches) {
+  const groupes = new Map();
+  for (const fiche of fiches) {
+    const themeId = fiche.thematique_id || 'shinrin-yoku';
+    if (!groupes.has(themeId)) groupes.set(themeId, []);
+    groupes.get(themeId).push(fiche);
+  }
+  return groupes;
+}
+
+function sectionsMarkdown(fiches) {
+  const groupes = groupByTheme(fiches);
+  return THEMES.filter((theme) => groupes.has(theme.id))
+    .map((theme) => {
+      const fichesTheme = groupes.get(theme.id);
+      return [`## ${theme.label}`, '', fichesTheme.map(ficheToMarkdown).join('\n\n---\n\n')].join('\n');
+    })
+    .join('\n\n---\n\n');
+}
+
+/**
+ * Génère le Markdown d'un run de veille (uniquement les fiches nouvellement ajoutées),
+ * organisé par section thématique.
+ */
+export function buildRunMarkdown(fiches, { runDate }) {
   const entete = [
-    `# Veille shinrin-yoku — ${runDate}`,
+    `# Veille La Borbolla / Braña Sana — ${runDate}`,
     '',
-    `Requête : \`${query}\``,
-    `${fiches.length} nouvelle(s) étude(s) détectée(s).`,
+    `${fiches.length} nouvelle(s) étude(s) détectée(s), toutes thématiques confondues.`,
     '',
     '---',
   ];
 
-  const corps = fiches.map(ficheToMarkdown).join('\n\n---\n\n');
-
-  return [...entete, '', corps].join('\n');
+  return [...entete, '', sectionsMarkdown(fiches)].join('\n');
 }
 
 /**
- * Génère le Markdown de toute la base de connaissances (export complet, consultation manuelle).
+ * Génère le Markdown de toute la base de connaissances (export complet, consultation
+ * manuelle), organisé par section thématique ; les fiches sont triées par date d'ajout
+ * (les plus récentes en premier) au sein de chaque section.
  */
 export function buildFullExportMarkdown(fiches) {
   const entete = [
-    '# Base de connaissances — Veille shinrin-yoku',
+    '# Base de connaissances — Veille La Borbolla / Braña Sana',
     '',
     `${fiches.length} étude(s) au total.`,
     '',
@@ -63,7 +90,6 @@ export function buildFullExportMarkdown(fiches) {
   ];
 
   const triees = [...fiches].sort((a, b) => (b.ajoute_le || '').localeCompare(a.ajoute_le || ''));
-  const corps = triees.map(ficheToMarkdown).join('\n\n---\n\n');
 
-  return [...entete, '', corps].join('\n');
+  return [...entete, '', sectionsMarkdown(triees)].join('\n');
 }

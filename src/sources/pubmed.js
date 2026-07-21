@@ -11,8 +11,9 @@ function commonParams() {
 }
 
 // NCBI limite les E-utilities à 3 requêtes/seconde sans clé API (10/s avec).
-// Un run complet enchaîne plusieurs appels (recherche mot-clé + 2 chercheurs de référence) ;
-// ce délai minimal entre requêtes évite un 429 sur un run sans PUBMED_API_KEY configurée.
+// Un run complet enchaîne un appel par thématique (mot-clé + chercheurs de référence
+// éventuels) — ce délai minimal entre requêtes évite un 429 sur un run sans
+// PUBMED_API_KEY configurée, même avec plusieurs thématiques enchaînées.
 const MIN_DELAY_MS = config.pubmed.apiKey ? 110 : 400;
 let lastRequestAt = 0;
 
@@ -149,37 +150,32 @@ function parseArticlesXml(xml) {
 }
 
 /**
- * Point d'entrée du module : renvoie les articles PubMed les plus récents pour la requête configurée.
+ * Point d'entrée du module : renvoie les articles PubMed les plus récents pour une requête donnée.
+ * `query` est fourni par l'appelant (une thématique de src/themes.js) — ce module reste
+ * générique et ne connaît aucune thématique en particulier.
  */
-export async function fetchRecentPubmedArticles({
-  query = config.pubmed.query,
-  maxResults = config.pubmed.maxResults,
-} = {}) {
+export async function fetchRecentPubmedArticles({ query, maxResults = config.pubmed.maxResults }) {
   const pmids = await searchPmids(query, maxResults);
   const articles = await fetchArticles(pmids);
   return articles.map((article) => ({ ...article, origineRecherche: 'mot-clé' }));
 }
 
 /**
- * Chercheurs de référence du domaine — leurs publications sont recherchées en priorité,
- * même si le titre/résumé n'emploie pas littéralement "shinrin-yoku"/"forest bathing".
- * Le terme auteur est combiné (AND) avec les termes thématiques de config.pubmed.query :
- * "Li Qing" et "Miyazaki Yoshifumi" sont des noms trop courants pour être utilisés seuls
- * sur PubMed (des milliers d'homonymes) — l'intersection avec le sujet les désambiguïse.
+ * Chercheurs de référence d'une thématique — leurs publications sont recherchées en priorité,
+ * même si le titre/résumé n'emploie pas littéralement les mots-clés de la thématique.
+ * Le terme auteur est combiné (AND) avec `query` : des noms d'auteurs courants (homonymes
+ * fréquents sur PubMed) sont ainsi désambiguïsés par l'intersection avec le sujet.
  */
-const REFERENCE_AUTHORS = [
-  { nom: 'Qing Li', pubmedAuthorTerm: '"Li Qing"[Author]' },
-  { nom: 'Yoshifumi Miyazaki', pubmedAuthorTerm: '"Miyazaki Yoshifumi"[Author]' },
-];
-
 export async function fetchReferenceAuthorArticles({
+  query,
+  authors,
   maxResultsPerAuthor = config.pubmed.referenceAuthorMaxResults,
-} = {}) {
+}) {
   const results = [];
 
-  for (const { nom, pubmedAuthorTerm } of REFERENCE_AUTHORS) {
-    const query = `${pubmedAuthorTerm} AND (${config.pubmed.query})`;
-    const pmids = await searchPmids(query, maxResultsPerAuthor);
+  for (const { nom, pubmedAuthorTerm } of authors) {
+    const authorQuery = `${pubmedAuthorTerm} AND (${query})`;
+    const pmids = await searchPmids(authorQuery, maxResultsPerAuthor);
     const articles = await fetchArticles(pmids);
     for (const article of articles) {
       results.push({ ...article, origineRecherche: 'reference', chercheurReference: nom });
