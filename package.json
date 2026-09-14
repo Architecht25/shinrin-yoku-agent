@@ -7,7 +7,8 @@
   "main": "src/index.js",
   "scripts": {
     "veille": "node src/index.js",
-    "export": "node src/export.js"
+    "export": "node src/export.js",
+    "test": "node --test"
   },
   "engines": {
     "node": ">=20"
