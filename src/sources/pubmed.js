@@ -23,22 +23,40 @@ async function throttle() {
   lastRequestAt = Date.now();
 }
 
-async function fetchJson(url) {
-  await throttle();
-  const res = await fetch(url);
-  if (!res.ok) {
+// Le débit ciblé par MIN_DELAY_MS suppose qu'on est seul sur notre IP ; sur les
+// runners GitHub Actions (IP partagée avec d'autres jobs), le 429 de NCBI survient
+// quand même de temps en temps. On absorbe ça par quelques retries avec backoff
+// (respecte l'en-tête Retry-After si NCBI le fournit) plutôt que de faire échouer
+// tout le run pour un pic de charge passager.
+const MAX_RETRIES = 4;
+const BASE_BACKOFF_MS = 1000;
+
+async function fetchWithRetry(url, { asJson }) {
+  for (let attempt = 0; ; attempt += 1) {
+    await throttle();
+    const res = await fetch(url);
+    if (res.ok) return asJson ? res.json() : res.text();
+
+    if (res.status === 429 && attempt < MAX_RETRIES) {
+      const retryAfterHeader = Number(res.headers.get('retry-after'));
+      const delay = Number.isFinite(retryAfterHeader) && retryAfterHeader > 0
+        ? retryAfterHeader * 1000
+        : BASE_BACKOFF_MS * 2 ** attempt;
+      console.warn(`[pubmed] HTTP 429, nouvelle tentative dans ${delay}ms (essai ${attempt + 1}/${MAX_RETRIES})...`);
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      continue;
+    }
+
     throw new Error(`PubMed API — HTTP ${res.status} pour ${url}`);
   }
-  return res.json();
+}
+
+async function fetchJson(url) {
+  return fetchWithRetry(url, { asJson: true });
 }
 
 async function fetchText(url) {
-  await throttle();
-  const res = await fetch(url);
-  if (!res.ok) {
-    throw new Error(`PubMed API — HTTP ${res.status} pour ${url}`);
-  }
-  return res.text();
+  return fetchWithRetry(url, { asJson: false });
 }
 
 /**
