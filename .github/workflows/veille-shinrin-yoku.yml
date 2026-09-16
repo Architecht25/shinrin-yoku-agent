@@ -8,6 +8,12 @@ on:
 
 permissions:
   contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
 
 jobs:
   veille:
@@ -32,6 +38,7 @@ jobs:
           SMTP_FROM: "Veille La Borbolla <veille-shinrin-yoku@ren0vate.be>"
           RECIPIENT_EMAIL_1: robin@manage-green.be
           RECIPIENT_EMAIL_2: amicie@manage-green.be
+          DASHBOARD_URL: "https://architecht25.github.io/shinrin-yoku-agent/"
 
       - name: Commit et push des nouvelles fiches
         run: |
@@ -40,3 +47,23 @@ jobs:
           git add data/db.json veille-la-borbolla/
           git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
           git push
+
+      - name: Préparer le dossier de publication GitHub Pages
+        run: |
+          mkdir -p dist
+          cp veille-la-borbolla/dashboard.html dist/index.html
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy-pages:
+    needs: veille
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Déployer sur GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

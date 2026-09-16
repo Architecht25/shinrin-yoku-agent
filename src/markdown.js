@@ -63,11 +63,12 @@ function sectionsMarkdown(fiches) {
  * Génère le Markdown d'un run de veille (uniquement les fiches nouvellement ajoutées),
  * organisé par section thématique.
  */
-export function buildRunMarkdown(fiches, { runDate }) {
+export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
   const entete = [
     `# Veille La Borbolla / Braña Sana — ${runDate}`,
     '',
     `${fiches.length} nouvelle(s) étude(s) détectée(s), toutes thématiques confondues.`,
+    ...(dashboardUrl ? ['', `[Tableau de bord de tri](${dashboardUrl})`] : []),
     '',
     '---',
   ];
