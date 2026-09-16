@@ -9,6 +9,7 @@ import { loadStore, saveStore, partitionNewArticles } from './store.js';
 import { createAnthropicClient, extractFiche } from './extract.js';
 import { buildRunMarkdown } from './markdown.js';
 import { createTransport, sendVeilleReport } from './email.js';
+import { writeDashboard } from './exportHtml.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, '..', 'veille-la-borbolla');
@@ -87,7 +88,10 @@ async function main() {
   store.fiches.push(...nouvellesFiches);
   await saveStore(store);
 
-  const markdown = buildRunMarkdown(nouvellesFiches, { runDate });
+  const dashboardPath = await writeDashboard(store);
+  console.log(`[veille] Tableau de bord régénéré dans ${dashboardPath}`);
+
+  const markdown = buildRunMarkdown(nouvellesFiches, { runDate, dashboardUrl: config.dashboardUrl });
 
   await mkdir(OUTPUT_DIR, { recursive: true });
   const outputPath = path.join(OUTPUT_DIR, `${runDate}.md`);

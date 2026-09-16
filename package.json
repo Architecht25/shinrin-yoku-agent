@@ -8,6 +8,7 @@
   "scripts": {
     "veille": "node src/index.js",
     "export": "node src/export.js",
+    "dashboard": "node src/exportHtml.js",
     "test": "node --test"
   },
   "engines": {

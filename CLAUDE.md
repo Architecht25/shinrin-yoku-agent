@@ -41,7 +41,7 @@ marketing.
 | Persistance | fichier JSON plat `data/db.json`, versionné en git — pas de vraie BDD |
 | Tests / lint | aucun |
 | CI/CD | GitHub Actions (`.github/workflows/veille-shinrin-yoku.yml`) |
-| Déploiement | aucune cible (pas de Dockerfile/Procfile) — cron GitHub Actions uniquement, ou lancement manuel local |
+| Déploiement | pas de Dockerfile/Procfile — cron GitHub Actions pour le pipeline ; le tableau de bord HTML (`veille-la-borbolla/dashboard.html`) est publié sur **GitHub Pages** à chaque run par le même workflow |
 
 ## Commandes essentielles
 
@@ -53,6 +53,7 @@ cp .env.example .env              # puis renseigner ANTHROPIC_API_KEY, SMTP, des
 # Exécution
 npm run veille                    # lance un run de veille complet (6 thématiques)
 npm run export                    # exporte toute la base de connaissances (data/db.json) en Markdown lisible
+npm run dashboard                 # régénère veille-la-borbolla/dashboard.html (tableau de bord de tri)
 
 # Lancement local via wrapper bash (PATH nvm hardcodé — probablement pour un cron local)
 bin/run-veille.sh
@@ -83,11 +84,17 @@ src/
   index.js           Orchestration : boucle sur les 6 thématiques → dédup → extraction
                       Claude par article nouveau → écriture Markdown → envoi email
   export.js          Export Markdown de toute la base de connaissances (hors run)
+  exportHtml.js       Génère veille-la-borbolla/dashboard.html : tableau de bord HTML
+                     statique (zéro dépendance), filtrable par run/thématique/type
+                     d'étude, sans backend — exporte `writeDashboard(store)`, appelée
+                     par `main()` (CLI `npm run dashboard`) et par `src/index.js` après
+                     chaque run pour régénérer le fichier automatiquement
 
 data/db.json              Base de connaissances (source de vérité, toutes thématiques
                             confondues), versionnée en git, champ `thematique_id` pour tri/filtre
 veille-la-borbolla/        Sorties Markdown du pipeline actuel (post-renommage, un fichier
-                            par run daté AAAA-MM-JJ.md) — cible réelle du code (src/index.js)
+                            par run daté AAAA-MM-JJ.md) — cible réelle du code (src/index.js) —
+                            contient aussi `dashboard.html`, publié sur GitHub Pages par la CI
 veille-shinrin-yoku/       Dossier LEGACY pré-renommage, un seul fichier (2026-07-19.md),
                             jamais migré ni supprimé — voir "Points d'attention"
 bin/run-veille.sh          Wrapper bash pour lancement local (PATH nvm hardcodé)
@@ -104,14 +111,22 @@ Pipeline détaillé d'un run (`src/index.js`) :
 3. Pour chaque article réellement nouveau, appelle Claude (`extractFiche`,
    `claude-sonnet-5`) indépendamment — un appel = un article, pas de contexte partagé
 4. Sauvegarde les nouvelles fiches dans `data/db.json`
-5. Génère le Markdown du run (`buildRunMarkdown`) et l'écrit dans
-   `veille-la-borbolla/AAAA-MM-JJ.md`
-6. Envoie le rapport par email si des destinataires sont configurés — **aucun email
+5. Régénère `veille-la-borbolla/dashboard.html` (`writeDashboard`, `src/exportHtml.js`)
+   à partir de la base complète mise à jour
+6. Génère le Markdown du run (`buildRunMarkdown`) et l'écrit dans
+   `veille-la-borbolla/AAAA-MM-JJ.md` — inclut un lien vers `DASHBOARD_URL` si la
+   variable est renseignée (c'est le cas en CI, vide en local)
+7. Envoie le rapport par email si des destinataires sont configurés — **aucun email
    n'est envoyé s'il n'y a aucune étude nouvelle** (pas de bruit)
 
 La CI (`veille-shinrin-yoku.yml`) exécute ce pipeline puis **commit et push
 automatiquement** `data/db.json` et `veille-la-borbolla/` avec un bot dédié
-(`veille-shinrin-yoku-bot`).
+(`veille-shinrin-yoku-bot`), puis publie `veille-la-borbolla/dashboard.html` (renommé
+`index.html`) sur **GitHub Pages** via `actions/upload-pages-artifact` +
+`actions/deploy-pages` (job séparé `deploy-pages`, `needs: veille`). Le dépôt étant
+privé, la page Pages nécessite un plan GitHub payant (Pro/Team/Enterprise) — sur un
+plan Free, la publication Pages échoue en CI (`deploy-pages` en erreur) tant que le
+dépôt reste privé ; passer le dépôt en public ou upgrader le plan lève la limite.
 
 ## Conventions
 
@@ -150,6 +165,9 @@ SMTP_FROM                      # Adresse expéditeur affichée
 
 RECIPIENT_EMAIL_1              # Destinataire 1 du rapport
 RECIPIENT_EMAIL_2              # Destinataire 2 du rapport
+
+DASHBOARD_URL                   # URL publique du tableau de bord (GitHub Pages) — optionnel,
+                                 # ajoutée en tête du rapport quand renseignée ; vide en local
 ```
 
 En CI (`veille-shinrin-yoku.yml`), ces valeurs sont injectées via `secrets.*` pour

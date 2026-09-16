@@ -23,4 +23,6 @@ export const config = {
   },
 
   recipients: [process.env.RECIPIENT_EMAIL_1, process.env.RECIPIENT_EMAIL_2].filter(Boolean),
+
+  dashboardUrl: process.env.DASHBOARD_URL || '',
 };
