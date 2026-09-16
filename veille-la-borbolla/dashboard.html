@@ -99,6 +99,9 @@
     font-size: 0.7rem; padding: 2px 7px; border-radius: 999px;
     background: var(--gridline); color: var(--text-secondary); white-space: nowrap;
   }
+  .badge-pertinence {
+    background: rgba(12,163,12,0.16); color: #0ca30c; font-weight: 600;
+  }
   .meta-line { color: var(--text-secondary); font-size: 0.78rem; margin-top: 4px; }
   .snippet { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; }
   .details { display: none; margin-top: 10px; border-top: 1px solid var(--gridline); padding-top: 10px; font-size: 0.85rem; }
@@ -275,7 +278,12 @@
         section.className = 'section-title';
         section.textContent = (themeMeta[id]?.label || id) + ' — ' + byTheme[id].length;
         listEl.appendChild(section);
-        byTheme[id].forEach((f) => listEl.appendChild(renderCard(f, id)));
+        // Les fiches avec un angle Braña Sana concret remontent en tête, triées par
+        // pertinence décroissante — pour repérer vite ce qui compte parmi 60+ articles.
+        byTheme[id]
+          .slice()
+          .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+          .forEach((f) => listEl.appendChild(renderCard(f, id)));
       });
   }
 
@@ -287,8 +295,10 @@
 
     const head = document.createElement('div');
     head.className = 'card-head';
+    const pertinence = f.angle_brana_sana ? (f.pertinence_brana_sana || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
+      (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
       '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>';
     card.appendChild(head);
 

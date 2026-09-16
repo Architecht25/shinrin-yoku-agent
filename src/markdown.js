@@ -49,6 +49,28 @@ function groupByTheme(fiches) {
   return groupes;
 }
 
+/**
+ * Sélectionne, par thématique, les fiches les plus pertinentes pour Braña Sana :
+ * uniquement celles avec un angle_brana_sana renseigné (jamais forcé en amont),
+ * triées par pertinence_brana_sana décroissante, limitées à `limit` par thématique.
+ */
+function selectionPertinenceMarkdown(fiches, { limit = 5 } = {}) {
+  const avecAngle = fiches.filter((f) => (f.angle_brana_sana || '').trim().length > 0);
+  const groupes = groupByTheme(avecAngle);
+  const themesAvecSelection = THEMES.filter((theme) => groupes.has(theme.id));
+  if (themesAvecSelection.length === 0) return '';
+
+  const sections = themesAvecSelection.map((theme) => {
+    const top = [...groupes.get(theme.id)]
+      .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+      .slice(0, limit);
+    const items = top.map((f) => `- **${f.titre}** — ${f.angle_brana_sana}`).join('\n');
+    return [`### ${theme.label}`, '', items].join('\n');
+  });
+
+  return ['## Sélection — les plus pertinentes pour Braña Sana', '', ...sections].join('\n\n');
+}
+
 function sectionsMarkdown(fiches) {
   const groupes = groupByTheme(fiches);
   return THEMES.filter((theme) => groupes.has(theme.id))
@@ -73,7 +95,9 @@ export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
     '---',
   ];
 
-  return [...entete, '', sectionsMarkdown(fiches)].join('\n');
+  const selection = selectionPertinenceMarkdown(fiches);
+
+  return [...entete, '', selection, selection ? '\n---\n' : '', sectionsMarkdown(fiches)].join('\n');
 }
 
 /**

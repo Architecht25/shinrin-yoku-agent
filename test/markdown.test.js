@@ -17,6 +17,7 @@ function ficheFactice(overrides = {}) {
     resultat_principal: 'Réduction observée du cortisol après immersion forestière.',
     niveau_de_preuve_et_limites: "Échantillon réduit, absence de groupe contrôle.",
     angle_brana_sana: 'Pertinent pour les sentiers de marche lente.',
+    pertinence_brana_sana: 3,
     thematique_id: 'shinrin-yoku',
     thematique: 'Bain de forêt / shinrin-yoku',
     origine_recherche: 'mot-clé',
@@ -83,6 +84,47 @@ describe('buildRunMarkdown', () => {
     const idxSommeil = md.indexOf('## Repos / sommeil');
     assert.ok(idxForet !== -1 && idxSommeil !== -1);
     assert.ok(idxForet < idxSommeil, 'shinrin-yoku doit apparaître avant sommeil (ordre de THEMES)');
+  });
+
+  test('affiche une sélection par thématique limitée aux fiches avec un angle Braña Sana renseigné, triée par pertinence', () => {
+    const md = buildRunMarkdown(
+      [
+        ficheFactice({ titre: 'Étude peu pertinente', pertinence_brana_sana: 1 }),
+        ficheFactice({ titre: 'Étude très pertinente', pertinence_brana_sana: 5 }),
+        ficheFactice({ titre: 'Étude sans angle', angle_brana_sana: '', pertinence_brana_sana: 0 }),
+      ],
+      { runDate: '2026-09-14' }
+    );
+
+    assert.match(md, /## Sélection — les plus pertinentes pour Braña Sana/);
+    const idxTresPertinente = md.indexOf('Étude très pertinente');
+    const idxPeuPertinente = md.indexOf('Étude peu pertinente');
+    assert.ok(idxTresPertinente !== -1 && idxPeuPertinente !== -1);
+    assert.ok(idxTresPertinente < idxPeuPertinente, 'la fiche la plus pertinente doit apparaître en premier');
+    assert.doesNotMatch(md.slice(0, md.indexOf('\n## Bain de forêt')), /Étude sans angle/);
+  });
+
+  test('n\'affiche pas de section sélection si aucune fiche n\'a d\'angle Braña Sana renseigné', () => {
+    const md = buildRunMarkdown(
+      [ficheFactice({ angle_brana_sana: '', pertinence_brana_sana: 0 })],
+      { runDate: '2026-09-14' }
+    );
+
+    assert.doesNotMatch(md, /## Sélection — les plus pertinentes pour Braña Sana/);
+  });
+
+  test('limite la sélection à 5 fiches par thématique', () => {
+    const fiches = Array.from({ length: 7 }, (_, i) =>
+      ficheFactice({ titre: `Étude ${i}`, pertinence_brana_sana: i })
+    );
+    const md = buildRunMarkdown(fiches, { runDate: '2026-09-14' });
+
+    const selection = md.slice(
+      md.indexOf('## Sélection'),
+      md.indexOf('\n## Bain de forêt')
+    );
+    const occurrences = selection.match(/^- \*\*Étude/gm) || [];
+    assert.equal(occurrences.length, 5);
   });
 });
 

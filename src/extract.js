@@ -34,6 +34,10 @@ const FICHE_TOOL = {
         type: 'string',
         description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Laisser vide (chaîne vide) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
       },
+      pertinence_brana_sana: {
+        type: 'integer',
+        description: "Score de pertinence pratique pour Braña Sana, de 0 à 5. Doit valoir 0 si angle_brana_sana est vide. Sinon, reflète la force combinée de la preuve et le caractère concret/actionnable de l'angle (5 = preuve solide et application directe à un programme ou un espace existant ; 1-2 = lien plausible mais preuve faible ou angle vague). Ne jamais gonfler ce score pour rendre un article artificiellement intéressant.",
+      },
     },
     required: [
       'titre',
@@ -45,6 +49,7 @@ const FICHE_TOOL = {
       'resultat_principal',
       'niveau_de_preuve_et_limites',
       'angle_brana_sana',
+      'pertinence_brana_sana',
     ],
   },
 };
@@ -56,6 +61,7 @@ Règles impératives :
 - Si le résumé mentionne une taille d'échantillon réduite, une absence de groupe contrôle, un biais ou une hétérogénéité méthodologique, le signaler dans "niveau_de_preuve_et_limites".
 - Si le résumé ne mentionne aucune limite, ne pas en inventer — indique "non précisé dans le résumé".
 - Le champ "angle_brana_sana" doit rester vide si aucun lien concret et honnête ne se justifie. Ne force jamais un rapprochement marketing.
+- Le champ "pertinence_brana_sana" (0 à 5) doit rester honnête et cohérent avec "angle_brana_sana" : 0 si ce dernier est vide, et proportionnel à la force de la preuve et au caractère concret de l'angle sinon. Ne jamais le gonfler.
 - Utilise exclusivement les informations fournies (titre, résumé, métadonnées) — n'invente aucune donnée absente.
 - Réponds uniquement en appelant l'outil "enregistrer_fiche".`;
 
