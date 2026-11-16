@@ -22,6 +22,10 @@ export const config = {
     from: process.env.SMTP_FROM || '',
   },
 
+  // Liste d'ids de thématiques (cf. src/themes.js) séparés par des virgules, ex.
+  // "shinrin-yoku". Vide = toutes les thématiques.
+  themeIds: (process.env.VEILLE_THEMES || '').split(',').map((s) => s.trim()).filter(Boolean),
+
   recipients: [process.env.RECIPIENT_EMAIL_1, process.env.RECIPIENT_EMAIL_2].filter(Boolean),
 
   dashboardUrl: process.env.DASHBOARD_URL || '',
