@@ -53,7 +53,7 @@ cp .env.example .env              # puis renseigner ANTHROPIC_API_KEY, SMTP, des
 # Exécution
 npm run veille                    # lance un run de veille complet (6 thématiques)
 npm run export                    # exporte toute la base de connaissances (data/db.json) en Markdown lisible
-npm run dashboard                 # régénère veille-la-borbolla/dashboard.html (tableau de bord de tri)
+npm run dashboard                 # régénère dashboard.html avec TOUTE la base (usage local ; le run hebdo ne publie que les nouvelles fiches)
 
 # Lancement local via wrapper bash (PATH nvm hardcodé — probablement pour un cron local)
 bin/run-veille.sh
@@ -79,8 +79,13 @@ src/
                      pas comme agent conversationnel (pas de mémoire, pas de boucle)
   store.js           Chargement/sauvegarde de data/db.json + déduplication
                      (clé : DOI normalisé, sinon titre normalisé)
-  markdown.js        Génération du rapport Markdown du run, organisé par section thématique
-  email.js           Envoi du rapport par email (Nodemailer), HTML + pièce jointe .md
+  digest.js          Journal hebdomadaire : UN appel Claude (tool forcé `rediger_journal`) sur toutes
+                     les fiches du run → titre de une, chapeau, « À la une » (3-6, priorité à
+                     l'applicabilité pour La Borbolla via `pertinence_brana_sana`), « En bref ».
+                     Claude cite les fiches par id ; liens/DOI/métadonnées viennent des fiches
+                     (`journalToMarkdown`), jamais du texte généré
+  markdown.js        Génération du rapport détaillé du run (fiches), organisé par section thématique
+  email.js           Envoi par email (Nodemailer) : corps HTML = journal, pièce jointe .md = fiches détaillées
   index.js           Orchestration : boucle sur les 6 thématiques → dédup → extraction
                       Claude par article nouveau → écriture Markdown → envoi email
   export.js          Export Markdown de toute la base de connaissances (hors run)
@@ -112,11 +117,14 @@ Pipeline détaillé d'un run (`src/index.js`) :
    `claude-sonnet-5`) indépendamment — un appel = un article, pas de contexte partagé
 4. Sauvegarde les nouvelles fiches dans `data/db.json`
 5. Régénère `veille-la-borbolla/dashboard.html` (`writeDashboard`, `src/exportHtml.js`)
-   à partir de la base complète mise à jour
-6. Génère le Markdown du run (`buildRunMarkdown`) et l'écrit dans
-   `veille-la-borbolla/AAAA-MM-JJ.md` — inclut un lien vers `DASHBOARD_URL` si la
-   variable est renseignée (c'est le cas en CI, vide en local)
-7. Envoie le rapport par email si des destinataires sont configurés — **aucun email
+   avec UNIQUEMENT les fiches nouvelles du run (la base complète reste dans
+   `data/db.json` ; `npm run dashboard` en local exporte toute la base)
+6. Génère le rapport détaillé (`buildRunMarkdown`) → `veille-la-borbolla/AAAA-MM-JJ-fiches.md`,
+   et le journal (`redigerJournal` + `journalToMarkdown`, `src/digest.js`) →
+   `veille-la-borbolla/AAAA-MM-JJ.md`. Si la rédaction du journal échoue, repli : le
+   rapport détaillé est écrit dans `AAAA-MM-JJ.md` et envoyé à la place. Lien vers
+   `DASHBOARD_URL` si renseignée (CI)
+7. Envoie par email le journal (fiches en pièce jointe) si des destinataires sont configurés — **aucun email
    n'est envoyé s'il n'y a aucune étude nouvelle** (pas de bruit)
 
 La CI (`veille-shinrin-yoku.yml`) exécute ce pipeline puis **commit et push
@@ -130,6 +138,11 @@ dépôt reste privé ; passer le dépôt en public ou upgrader le plan lève la 
 
 ## Conventions
 
+- Les requêtes PubMed passent toutes par `withExclusions` (`src/sources/pubmed.js`) : exclut
+  études animales/in vitro (termes [Title/Abstract] + MeSH « animaux sans humains », pas
+  `humans[MeSH]` seul qui perdrait les articles récents non indexés) et recommandations
+  cliniques. Garder les requêtes de thème précises (termes seuls trop larges = bruit hors sujet,
+  ex. « preventive medicine », « focused attention »).
 - Ajouter une thématique = ajouter une entrée dans `src/themes.js` uniquement — le
   pipeline (`sources/pubmed.js`, `extract.js`, `index.js`) est générique et ne doit pas
   être dupliqué par thématique.
@@ -148,6 +161,7 @@ dépôt reste privé ; passer le dépôt en public ou upgrader le plan lève la 
 ## Variables d'environnement
 
 ```
+VEILLE_THEMES                  # Optionnel — ids de thématiques (src/themes.js) séparés par des virgules ; vide = toutes
 ANTHROPIC_API_KEY             # Clé API Claude (Anthropic)
 
 PUBMED_API_KEY                 # Optionnel — quota plus élevé E-utilities NCBI

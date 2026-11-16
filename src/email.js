@@ -9,11 +9,13 @@ function markdownToSimpleHtml(markdown) {
 
   const withInlineFormatting = escaped
     .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|[^*])\*([^*\n]+)\*(?!\*)/g, '$1<em>$2</em>')
     .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2">$1</a>');
 
   const html = withInlineFormatting
     .split('\n')
     .map((line) => {
+      if (line.startsWith('### ')) return `<h3>${line.slice(4)}</h3>`;
       if (line.startsWith('## ')) return `<h2>${line.slice(3)}</h2>`;
       if (line.startsWith('# ')) return `<h1>${line.slice(2)}</h1>`;
       if (line.trim() === '---') return '<hr>';
@@ -40,7 +42,7 @@ export function createTransport() {
  * N'envoie rien si aucun destinataire n'est configuré (le CLI doit vérifier ce cas avant, mais
  * on garde une garde ici pour éviter un envoi partiel silencieux).
  */
-export async function sendVeilleReport({ transport, subject, markdown, attachmentName }) {
+export async function sendVeilleReport({ transport, subject, markdown, attachmentName, attachmentContent = markdown }) {
   if (config.recipients.length === 0) {
     throw new Error('Aucun destinataire configuré (RECIPIENT_EMAIL_1 / RECIPIENT_EMAIL_2).');
   }
@@ -53,7 +55,7 @@ export async function sendVeilleReport({ transport, subject, markdown, attachmen
     attachments: [
       {
         filename: attachmentName,
-        content: markdown,
+        content: attachmentContent,
         contentType: 'text/markdown',
       },
     ],

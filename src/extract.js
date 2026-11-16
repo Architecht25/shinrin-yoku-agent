@@ -1,7 +1,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from './config.js';
 
-const MODEL = 'claude-sonnet-5';
+export const MODEL = 'claude-sonnet-5';
 
 const FICHE_TOOL = {
   name: 'enregistrer_fiche',

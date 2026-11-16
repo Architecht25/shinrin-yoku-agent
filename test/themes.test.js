@@ -59,3 +59,15 @@ describe('THEMES', () => {
     assert.deepEqual(manuel.referenceAuthors, []);
   });
 });
+
+import { withExclusions } from '../src/sources/pubmed.js';
+
+describe('withExclusions', () => {
+  test('enveloppe la requête et exclut animaux/in vitro sans exiger humans[MeSH]', () => {
+    const q = withExclusions('"forest bathing"[Title/Abstract]');
+    assert.ok(q.startsWith('("forest bathing"[Title/Abstract]) NOT'));
+    assert.match(q, /zebrafish/);
+    assert.match(q, /animals\[MeSH Terms\] NOT humans\[MeSH Terms\]/);
+    assert.doesNotMatch(q, /AND humans/);
+  });
+});
