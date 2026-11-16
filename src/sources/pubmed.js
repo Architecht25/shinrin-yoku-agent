@@ -60,12 +60,28 @@ async function fetchText(url) {
 }
 
 /**
+ * Exclusions communes à toutes les requêtes : études animales/in vitro et recommandations
+ * cliniques de spécialité, sans intérêt pour un centre bien-être. On exclut "animaux sans
+ * humains" plutôt que de exiger humans[MeSH] : les articles très récents ne sont pas encore
+ * indexés MeSH et seraient sinon perdus ; les termes [Title/Abstract] couvrent ce cas.
+ */
+const EXCLUSIONS =
+  'NOT (animals[MeSH Terms] NOT humans[MeSH Terms]) ' +
+  'NOT (zebrafish[Title/Abstract] OR mice[Title/Abstract] OR mouse[Title/Abstract] OR rats[Title/Abstract] ' +
+  'OR drosophila[Title/Abstract] OR "C. elegans"[Title/Abstract] OR "in vitro"[Title/Abstract] OR "cell line"[Title/Abstract]) ' +
+  'NOT "Practice Guideline"[Publication Type]';
+
+export function withExclusions(query) {
+  return `(${query}) ${EXCLUSIONS}`;
+}
+
+/**
  * Recherche les PMIDs les plus récents correspondant à la requête, triés par date de publication.
  */
 async function searchPmids(query, maxResults) {
   const params = commonParams();
   params.set('db', 'pubmed');
-  params.set('term', query);
+  params.set('term', withExclusions(query));
   params.set('retmax', String(maxResults));
   params.set('sort', 'pub+date');
   params.set('retmode', 'json');

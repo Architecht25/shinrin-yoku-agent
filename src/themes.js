@@ -24,7 +24,7 @@ export const THEMES = [
     id: 'sommeil',
     label: 'Repos / sommeil',
     pubmedQuery:
-      '"sleep science"[Title/Abstract] OR "restorative rest"[Title/Abstract] OR "circadian rhythm"[Title/Abstract] OR "sleep hygiene"[Title/Abstract] OR "rest deprivation"[Title/Abstract] OR "types of rest"[Title/Abstract]',
+      '"sleep science"[Title/Abstract] OR "restorative rest"[Title/Abstract] OR ("circadian rhythm"[Title/Abstract] AND (sleep[Title/Abstract] OR "light exposure"[Title/Abstract] OR chronotype[Title/Abstract])) OR "sleep hygiene"[Title/Abstract] OR "rest deprivation"[Title/Abstract] OR "types of rest"[Title/Abstract]',
     referenceAuthors: [
       { nom: 'Matthew Walker', pubmedAuthorTerm: '"Walker Matthew P"[Author]' },
       { nom: 'Steven Laureys', pubmedAuthorTerm: '"Laureys Steven"[Author]' },
@@ -34,7 +34,7 @@ export const THEMES = [
     id: 'manuel',
     label: 'Retour au manuel',
     pubmedQuery:
-      '"manual labor mental health"[Title/Abstract] OR "craft therapy"[Title/Abstract] OR "occupational therapy fine motor"[Title/Abstract] OR "handwork wellbeing"[Title/Abstract] OR "embodied cognition hands"[Title/Abstract] OR "digital detox manual activity"[Title/Abstract]',
+      '("craft therapy"[Title/Abstract] OR handicraft[Title/Abstract] OR gardening[Title/Abstract] OR "horticultural therapy"[Title/Abstract] OR woodworking[Title/Abstract] OR "manual work"[Title/Abstract] OR "creative activities"[Title/Abstract] OR "arts and crafts"[Title/Abstract]) AND (wellbeing[Title/Abstract] OR "well-being"[Title/Abstract] OR "mental health"[Title/Abstract] OR stress[Title/Abstract])',
     // Pas d'auteur académique unique de référence identifié à ce stade — filtre par
     // mots-clés uniquement. Ajouter un chercheur ici dès qu'il émerge de la veille.
     referenceAuthors: [],
@@ -43,7 +43,7 @@ export const THEMES = [
     id: 'mindfulness',
     label: 'Mindfulness & performance mentale',
     pubmedQuery:
-      '"mindfulness meditation"[Title/Abstract] OR "attention training"[Title/Abstract] OR "cognitive performance meditation"[Title/Abstract] OR "MBSR"[Title/Abstract] OR "focused attention"[Title/Abstract]',
+      '"mindfulness meditation"[Title/Abstract] OR "mindfulness-based"[Title/Abstract] OR "cognitive performance meditation"[Title/Abstract] OR "MBSR"[Title/Abstract]',
     referenceAuthors: [
       { nom: 'Jon Kabat-Zinn', pubmedAuthorTerm: '"Kabat-Zinn Jon"[Author]' },
       { nom: 'Amishi Jha', pubmedAuthorTerm: '"Jha Amishi P"[Author]' },
@@ -53,7 +53,7 @@ export const THEMES = [
     id: 'nutrition-longevite',
     label: 'Nutrition & science de la longévité',
     pubmedQuery:
-      '"longevity science"[Title/Abstract] OR "healthspan"[Title/Abstract] OR "caloric restriction"[Title/Abstract] OR "nutrition longevity"[Title/Abstract] OR "aging biology"[Title/Abstract]',
+      '"longevity science"[Title/Abstract] OR "healthspan"[Title/Abstract] OR "caloric restriction"[Title/Abstract] OR "nutrition longevity"[Title/Abstract] OR "time-restricted eating"[Title/Abstract]',
     referenceAuthors: [
       { nom: 'Valter Longo', pubmedAuthorTerm: '"Longo Valter D"[Author]' },
       { nom: 'David Sinclair', pubmedAuthorTerm: '"Sinclair David A"[Author]' },
@@ -63,7 +63,7 @@ export const THEMES = [
     id: 'prevention-personnalisee',
     label: 'Santé préventive & médecine personnalisée',
     pubmedQuery:
-      '"preventive medicine"[Title/Abstract] OR "personalized medicine"[Title/Abstract] OR "precision health"[Title/Abstract] OR "biomarkers early detection"[Title/Abstract]',
+      '("preventive medicine"[Title/Abstract] AND (lifestyle[Title/Abstract] OR "health promotion"[Title/Abstract] OR wellness[Title/Abstract])) OR ("personalized medicine"[Title/Abstract] AND lifestyle[Title/Abstract]) OR "precision health"[Title/Abstract]',
     referenceAuthors: [{ nom: 'Eric Topol', pubmedAuthorTerm: '"Topol Eric J"[Author]' }],
   },
 ];
