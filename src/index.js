@@ -94,7 +94,9 @@ async function main() {
   store.fiches.push(...nouvellesFiches);
   await saveStore(store);
 
-  const dashboardPath = await writeDashboard(store);
+  // Publication hebdomadaire : uniquement les fiches nouvelles de ce run (la base complète
+  // reste dans data/db.json ; `npm run dashboard` régénère un tableau de bord complet en local).
+  const dashboardPath = await writeDashboard({ fiches: nouvellesFiches });
   console.log(`[veille] Tableau de bord régénéré dans ${dashboardPath}`);
 
   const fichesMarkdown = buildRunMarkdown(nouvellesFiches, { runDate, dashboardUrl: config.dashboardUrl });

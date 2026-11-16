@@ -53,7 +53,7 @@ cp .env.example .env              # puis renseigner ANTHROPIC_API_KEY, SMTP, des
 # Exécution
 npm run veille                    # lance un run de veille complet (6 thématiques)
 npm run export                    # exporte toute la base de connaissances (data/db.json) en Markdown lisible
-npm run dashboard                 # régénère veille-la-borbolla/dashboard.html (tableau de bord de tri)
+npm run dashboard                 # régénère dashboard.html avec TOUTE la base (usage local ; le run hebdo ne publie que les nouvelles fiches)
 
 # Lancement local via wrapper bash (PATH nvm hardcodé — probablement pour un cron local)
 bin/run-veille.sh
