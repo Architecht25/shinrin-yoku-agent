@@ -10,10 +10,11 @@ const EXPECTED_THEME_IDS = [
   'mindfulness',
   'nutrition-longevite',
   'prevention-personnalisee',
+  'sieste-marche',
 ];
 
 describe('THEMES', () => {
-  test('définit exactement les 6 thématiques attendues, dans le bon ordre', () => {
+  test('définit exactement les 7 thématiques attendues, dans le bon ordre', () => {
     assert.deepEqual(
       THEMES.map((t) => t.id),
       EXPECTED_THEME_IDS

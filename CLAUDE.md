@@ -11,8 +11,8 @@ le nom du dossier de sortie `veille-la-borbolla/` suggère un lien avec ce lieu/
 sans confirmation directe dans ce repo.
 
 Chaque lundi (ou à la demande), l'agent :
-- interroge PubMed sur 6 thématiques liées aux piliers de Braña Sana (bain de forêt,
-  sommeil, travail manuel, mindfulness, nutrition/longévité, santé préventive),
+- interroge PubMed sur 7 thématiques liées aux piliers de Braña Sana (bain de forêt,
+  sommeil, travail manuel, mindfulness, nutrition/longévité, santé préventive, sieste & marche),
   définies dans `src/themes.js` — mots-clés + chercheurs de référence par thématique
 - déduplique les articles trouvés contre l'historique (`data/db.json`)
 - pour chaque article réellement nouveau, demande à Claude d'en extraire une **fiche
@@ -51,7 +51,7 @@ npm install
 cp .env.example .env              # puis renseigner ANTHROPIC_API_KEY, SMTP, destinataires
 
 # Exécution
-npm run veille                    # lance un run de veille complet (6 thématiques)
+npm run veille                    # lance un run de veille complet (7 thématiques)
 npm run export                    # exporte toute la base de connaissances (data/db.json) en Markdown lisible
 npm run dashboard                 # régénère dashboard.html avec TOUTE la base (usage local ; le run hebdo ne publie que les nouvelles fiches)
 
@@ -69,7 +69,7 @@ Aucun test, aucun linter/formatter configuré dans ce repo.
 ```
 src/
   config.js         Lecture des variables d'environnement (dotenv)
-  themes.js         Définition statique des 6 thématiques de veille
+  themes.js         Définition statique des 7 thématiques de veille
                      (requête PubMed [Title/Abstract] + chercheurs de référence par thème)
   sources/pubmed.js  Client PubMed E-utilities (esearch + efetch), fetch HTTP brut, générique
                      par thématique — pas de dépendance à une lib PubMed tierce
@@ -86,7 +86,7 @@ src/
                      (`journalToMarkdown`), jamais du texte généré
   markdown.js        Génération du rapport détaillé du run (fiches), organisé par section thématique
   email.js           Envoi par email (Nodemailer) : corps HTML = journal, pièce jointe .md = fiches détaillées
-  index.js           Orchestration : boucle sur les 6 thématiques → dédup → extraction
+  index.js           Orchestration : boucle sur les 7 thématiques → dédup → extraction
                       Claude par article nouveau → écriture Markdown → envoi email
   export.js          Export Markdown de toute la base de connaissances (hors run)
   exportHtml.js       Génère veille-la-borbolla/dashboard.html : tableau de bord HTML

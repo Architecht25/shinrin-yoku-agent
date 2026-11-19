@@ -66,4 +66,14 @@ export const THEMES = [
       '("preventive medicine"[Title/Abstract] AND (lifestyle[Title/Abstract] OR "health promotion"[Title/Abstract] OR wellness[Title/Abstract])) OR ("personalized medicine"[Title/Abstract] AND lifestyle[Title/Abstract]) OR "precision health"[Title/Abstract]',
     referenceAuthors: [{ nom: 'Eric Topol', pubmedAuthorTerm: '"Topol Eric J"[Author]' }],
   },
+  {
+    id: 'sieste-marche',
+    label: 'Sieste & marche',
+    // Repos actif (cf. « Rest », A. Soojung-Kim Pang) : sieste et marche. Requêtes volontairement
+    // étroites — « nap » ou « walking » seuls ramènent surtout du bruit (cohortes de sommeil,
+    // biomécanique, réadaptation clinique). Pas d'auteur de référence PubMed identifié.
+    pubmedQuery:
+      '(("daytime nap"[Title/Abstract] OR napping[Title/Abstract] OR "power nap"[Title/Abstract] OR "afternoon nap"[Title/Abstract] OR "midday nap"[Title/Abstract] OR siesta[Title/Abstract]) AND (alertness[Title/Abstract] OR fatigue[Title/Abstract] OR mood[Title/Abstract] OR memory[Title/Abstract] OR wellbeing[Title/Abstract] OR "cognitive performance"[Title/Abstract] OR "work performance"[Title/Abstract])) OR (("walking intervention"[Title/Abstract] OR "walking program"[Title/Abstract] OR "walking programme"[Title/Abstract] OR "nature walk"[Title/Abstract] OR "walking in nature"[Title/Abstract] OR "outdoor walking"[Title/Abstract] OR "mindful walking"[Title/Abstract] OR "walking meeting"[Title/Abstract] OR "walking group"[Title/Abstract] OR "walking and creativity"[Title/Abstract]) AND (stress[Title/Abstract] OR "mental health"[Title/Abstract] OR mood[Title/Abstract] OR wellbeing[Title/Abstract] OR "well-being"[Title/Abstract] OR creativity[Title/Abstract] OR depression[Title/Abstract]))',
+    referenceAuthors: [],
+  },
 ];
