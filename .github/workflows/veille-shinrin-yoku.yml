@@ -38,6 +38,8 @@ jobs:
           SMTP_FROM: "Veille La Borbolla <veille-shinrin-yoku@ren0vate.be>"
           RECIPIENT_EMAIL_1: robin@manage-green.be
           RECIPIENT_EMAIL_2: amicie@manage-green.be
+          # Périmètre : repos et soins naturels (les autres thématiques restent définies dans src/themes.js)
+          VEILLE_THEMES: "shinrin-yoku,sommeil,sieste-marche"
           DASHBOARD_URL: "https://architecht25.github.io/shinrin-yoku-agent/"
 
       - name: Commit et push des nouvelles fiches

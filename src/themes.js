@@ -14,7 +14,7 @@ export const THEMES = [
     id: 'shinrin-yoku',
     label: 'Bain de forêt / shinrin-yoku',
     pubmedQuery:
-      '"shinrin-yoku"[Title/Abstract] OR "forest bathing"[Title/Abstract] OR "forest therapy"[Title/Abstract] OR "nature therapy"[Title/Abstract]',
+      '"shinrin-yoku"[Title/Abstract] OR "forest bathing"[Title/Abstract] OR "forest therapy"[Title/Abstract] OR "nature therapy"[Title/Abstract] OR (("horticultural therapy"[Title/Abstract] OR "therapeutic garden"[Title/Abstract] OR "nature-based intervention"[Title/Abstract] OR "nature-based interventions"[Title/Abstract] OR "green prescription"[Title/Abstract] OR "green space"[Title/Abstract] OR "blue space"[Title/Abstract] OR "green exercise"[Title/Abstract] OR ecotherapy[Title/Abstract]) AND (stress[Title/Abstract] OR "mental health"[Title/Abstract] OR wellbeing[Title/Abstract] OR "well-being"[Title/Abstract] OR depression[Title/Abstract] OR anxiety[Title/Abstract] OR restoration[Title/Abstract]))',
     referenceAuthors: [
       { nom: 'Qing Li', pubmedAuthorTerm: '"Li Qing"[Author]' },
       { nom: 'Yoshifumi Miyazaki', pubmedAuthorTerm: '"Miyazaki Yoshifumi"[Author]' },

@@ -11,7 +11,7 @@ le nom du dossier de sortie `veille-la-borbolla/` suggère un lien avec ce lieu/
 sans confirmation directe dans ce repo.
 
 Chaque lundi (ou à la demande), l'agent :
-- interroge PubMed sur 7 thématiques liées aux piliers de Braña Sana (bain de forêt,
+- interroge PubMed sur 7 thématiques définies (la CI n'active que bain de forêt + nature, sommeil, sieste & marche via `VEILLE_THEMES`) liées aux piliers de Braña Sana (bain de forêt,
   sommeil, travail manuel, mindfulness, nutrition/longévité, santé préventive, sieste & marche),
   définies dans `src/themes.js` — mots-clés + chercheurs de référence par thématique
 - déduplique les articles trouvés contre l'historique (`data/db.json`)
