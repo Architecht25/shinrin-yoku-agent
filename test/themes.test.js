@@ -3,17 +3,10 @@ import assert from 'node:assert/strict';
 
 import { THEMES } from '../src/themes.js';
 
-const EXPECTED_THEME_IDS = [
-  'shinrin-yoku',
-  'sommeil',
-  'manuel',
-  'mindfulness',
-  'nutrition-longevite',
-  'prevention-personnalisee',
-];
+const EXPECTED_THEME_IDS = ['shinrin-yoku', 'sommeil', 'sieste-marche', 'manuel'];
 
 describe('THEMES', () => {
-  test('définit exactement les 6 thématiques attendues, dans le bon ordre', () => {
+  test('définit exactement les 4 thématiques attendues, dans le bon ordre', () => {
     assert.deepEqual(
       THEMES.map((t) => t.id),
       EXPECTED_THEME_IDS
@@ -54,9 +47,9 @@ describe('THEMES', () => {
     }
   });
 
-  test("la thématique 'manuel' n'a pas encore de chercheur de référence identifié", () => {
-    const manuel = THEMES.find((t) => t.id === 'manuel');
-    assert.deepEqual(manuel.referenceAuthors, []);
+  test("la thématique 'sieste-marche' n'a pas de chercheur de référence identifié", () => {
+    const siesteMarche = THEMES.find((t) => t.id === 'sieste-marche');
+    assert.deepEqual(siesteMarche.referenceAuthors, []);
   });
 });
 

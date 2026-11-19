@@ -35,7 +35,7 @@ factuelles et exportables, à relire manuellement avant tout usage éditorial.
    Ces fiches sont marquées `origine_recherche: "reference"` pour les distinguer des
    résultats de la recherche générique par mots-clés (`origine_recherche: "mot-clé"`).
 2. Déduplique par rapport à la base déjà connue (clé : DOI, ou titre normalisé si pas
-   de DOI) — tous les lots (6 thématiques × mots-clés + auteurs) sont dédupliqués
+   de DOI) — tous les lots (4 thématiques × mots-clés + auteurs) sont dédupliqués
    ensemble, en une seule passe, avant extraction.
 3. Pour chaque article réellement nouveau, extrait une fiche structurée via Claude
    (Sonnet) : titre, auteurs, date, DOI/lien, thématique, type d'étude, mécanisme
@@ -64,7 +64,7 @@ cp .env.example .env
 ## Utilisation
 
 ```bash
-npm run veille     # lance un run de veille complet (6 thématiques)
+npm run veille     # lance un run de veille complet (4 thématiques)
 npm run export     # exporte toute la base de connaissances en Markdown lisible
 ```
 
@@ -99,7 +99,7 @@ code, juste une nouvelle entrée dans `THEMES`.
 ```
 src/
   config.js       variables d'environnement
-  themes.js        définition des 6 thématiques (requêtes PubMed + chercheurs de référence)
+  themes.js        définition des 4 thématiques (requêtes PubMed + chercheurs de référence)
   sources/pubmed.js   client PubMed E-utilities (esearch + efetch), générique par thématique
   extract.js      extraction structurée via Claude (tool use), thématique attachée déterministe
   store.js        stockage JSON + déduplication (DOI ou titre), tous thèmes confondus
