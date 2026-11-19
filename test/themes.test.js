@@ -3,10 +3,10 @@ import assert from 'node:assert/strict';
 
 import { THEMES } from '../src/themes.js';
 
-const EXPECTED_THEME_IDS = ['shinrin-yoku', 'sommeil', 'sieste-marche'];
+const EXPECTED_THEME_IDS = ['shinrin-yoku', 'sommeil', 'sieste-marche', 'manuel'];
 
 describe('THEMES', () => {
-  test('définit exactement les 3 thématiques attendues, dans le bon ordre', () => {
+  test('définit exactement les 4 thématiques attendues, dans le bon ordre', () => {
     assert.deepEqual(
       THEMES.map((t) => t.id),
       EXPECTED_THEME_IDS
