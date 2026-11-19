@@ -73,11 +73,19 @@ function selectionPertinenceMarkdown(fiches, { limit = 5 } = {}) {
 
 function sectionsMarkdown(fiches) {
   const groupes = groupByTheme(fiches);
-  return THEMES.filter((theme) => groupes.has(theme.id))
-    .map((theme) => {
-      const fichesTheme = groupes.get(theme.id);
-      return [`## ${theme.label}`, '', fichesTheme.map(ficheToMarkdown).join('\n\n---\n\n')].join('\n');
-    })
+  const connus = THEMES.filter((theme) => groupes.has(theme.id)).map((theme) => ({
+    label: theme.label,
+    fiches: groupes.get(theme.id),
+  }));
+  // Thématiques retirées de src/themes.js mais présentes dans l'historique (data/db.json) :
+  // on les garde visibles dans les exports plutôt que de les perdre silencieusement.
+  const ids = new Set(THEMES.map((t) => t.id));
+  const archives = [...groupes.entries()]
+    .filter(([id]) => !ids.has(id))
+    .map(([id, liste]) => ({ label: `${liste[0].thematique || id} (archivée)`, fiches: liste }));
+
+  return [...connus, ...archives]
+    .map(({ label, fiches: liste }) => [`## ${label}`, '', liste.map(ficheToMarkdown).join('\n\n---\n\n')].join('\n'))
     .join('\n\n---\n\n');
 }
 

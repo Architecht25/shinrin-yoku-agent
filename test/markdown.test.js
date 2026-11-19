@@ -129,6 +129,14 @@ describe('buildRunMarkdown', () => {
 });
 
 describe('buildFullExportMarkdown', () => {
+  test('conserve les fiches d\'une thématique retirée de THEMES (section archivée)', () => {
+    const md = buildFullExportMarkdown([
+      ficheFactice({ thematique_id: 'mindfulness', thematique: 'Mindfulness', titre: 'Fiche ancienne mindfulness' }),
+    ]);
+    assert.match(md, /## Mindfulness \(archivée\)/);
+    assert.match(md, /Fiche ancienne mindfulness/);
+  });
+
   test('affiche le total de fiches et trie par date d\'ajout décroissante au sein d\'une section', () => {
     const md = buildFullExportMarkdown([
       ficheFactice({ titre: 'Fiche ancienne', ajoute_le: '2026-01-01' }),
