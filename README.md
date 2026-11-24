@@ -53,6 +53,23 @@ factuelles et exportables, à relire manuellement avant tout usage éditorial.
    seul email. **Aucun email n'est envoyé s'il n'y a aucune étude nouvelle, toutes
    thématiques confondues** — pas de bruit.
 
+## Envoi au hub d'agents (optionnel)
+
+En plus de l'email, chaque run peut déposer le journal sur le hub d'agents
+(`POST {HUB_URL}/api/v1/deliveries`, JSON, `Authorization: Bearer {HUB_TOKEN}`) :
+un article « Veille bien-être, semaine NN » (`external_id` = année-semaine ISO, ex.
+`2026-W48`, donc un renvoi de la même semaine est un doublon que le hub accepte avec
+un 200). Le `body` est le même contenu que l'email.
+
+| Variable | Rôle |
+|----------|------|
+| `HUB_ENABLED` | Envoi actif seulement si `true` |
+| `HUB_URL` | URL de base du hub |
+| `HUB_TOKEN` | Jeton Bearer |
+
+Si le hub est injoignable ou répond une erreur, l'erreur est journalisée et le run
+continue : ni l'email ni la veille n'échouent à cause du hub.
+
 ## Installation
 
 ```bash

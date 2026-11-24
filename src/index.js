@@ -11,6 +11,7 @@ import { redigerJournal, journalToMarkdown } from './digest.js';
 import { buildRunMarkdown } from './markdown.js';
 import { createTransport, sendVeilleReport } from './email.js';
 import { writeDashboard } from './exportHtml.js';
+import { buildHubPayload, sendToHub } from './hub.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, '..', 'veille-la-borbolla');
@@ -104,8 +105,9 @@ async function main() {
   // Journal lisible (priorité à ce qui est applicable à La Borbolla) ; si la rédaction
   // échoue, on retombe sur le rapport détaillé plutôt que de ne rien envoyer.
   let journalMarkdown = null;
+  let journal = null;
   try {
-    const journal = await redigerJournal(client, nouvellesFiches);
+    journal = await redigerJournal(client, nouvellesFiches);
     journalMarkdown = journalToMarkdown(journal, nouvellesFiches, { runDate, dashboardUrl: config.dashboardUrl });
   } catch (err) {
     console.error(`[veille] Échec de la rédaction du journal, repli sur le rapport détaillé : ${err.message}`);
@@ -116,6 +118,18 @@ async function main() {
   await writeFile(fichesPath, fichesMarkdown, 'utf-8');
   if (journalMarkdown) await writeFile(path.join(OUTPUT_DIR, `${runDate}.md`), journalMarkdown, 'utf-8');
   console.log(`[veille] Sorties écrites dans ${OUTPUT_DIR} (${runDate})`);
+
+  // Hub d'agents (en plus de l'email) : placé avant l'email pour être livré même si l'envoi
+  // SMTP échoue ; ne lève jamais.
+  await sendToHub(
+    buildHubPayload({
+      journal: journalMarkdown ? journal : null,
+      body: journalMarkdown || fichesMarkdown,
+      fiches: nouvellesFiches,
+      runDate,
+      runId: process.env.GITHUB_RUN_ID || `local-${new Date().toISOString()}`,
+    })
+  );
 
   if (config.recipients.length === 0) {
     console.log('[veille] Aucun destinataire configuré (RECIPIENT_EMAIL_1/2) — email non envoyé.');
