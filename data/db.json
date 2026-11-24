@@ -25621,6 +25621,26 @@
       "origine_recherche": "mot-clé",
       "chercheur_reference": null,
       "ajoute_le": "2026-11-23"
+    },
+    {
+      "titre": "Effect of an ergonomic hand support (handscupe®) in patients with inflammatory rheumatic diseases - a pilot study",
+      "auteurs": "Salih Liza, Dreher Matthias, Marinoska Tatjana, Biehl Christoph, Schwarting Andreas",
+      "date": "2026 Nov 23",
+      "type_etude": "autre",
+      "mecanisme_evalue": "Fonction manuelle (force de préhension), symptômes liés à la maladie rhumatismale (raideur matinale, douleur), activité de la maladie (DAS28) et bien-être subjectif (WHO-5, PHQ-9)",
+      "resultat_principal": "Après une intervention de 3 semaines avec un support ergonomique pour la main (\"handscupe®\"), 60 min/jour, les patients ont montré une augmentation significative de la force de préhension de la main droite et une amélioration significative du bien-être général (WHO-5), mais les résultats sur l'activité de la maladie étaient discordants entre évaluation médicale (amélioration) et ressenti des patients (légère aggravation subjective).",
+      "niveau_de_preuve_et_limites": "Étude pilote non contrôlée (pas de groupe contrôle mentionné), échantillon très réduit (32 patients inclus, 26 ayant complété l'intervention), menée en contexte de réadaptation hospitalière, résultats décrits par les auteurs eux-mêmes comme préliminaires (\"tendances positives\"), nécessitant une étude randomisée contrôlée de plus grande ampleur pour confirmation ; discordance entre mesures objectives et subjectives sur l'activité de la maladie signalée comme limite d'interprétation.",
+      "angle_brana_sana": "Bien que l'étude porte sur un dispositif médical spécifique (handscupe®) en contexte clinique rhumatologique, elle rappelle l'intérêt potentiel d'exercices manuels réguliers et adaptés pour la force de préhension et le bien-être chez des publics à mobilité manuelle réduite - un point de vigilance pour adapter les ateliers manuels (jardinage, artisanat) proposés à Braña Sana à des publics souffrant de limitations articulaires, sans toutefois promouvoir le dispositif lui-même.",
+      "pertinence_brana_sana": 1,
+      "doi": "10.1007/s00132-026-04905-x",
+      "lien": "https://pubmed.ncbi.nlm.nih.gov/43071100/",
+      "source": "PubMed",
+      "pmid": "43071100",
+      "thematique_id": "manuel",
+      "thematique": "Retour au manuel (mains, artisanat, potager)",
+      "origine_recherche": "mot-clé",
+      "chercheur_reference": null,
+      "ajoute_le": "2026-11-24"
     }
   ]
 }
