@@ -2,8 +2,9 @@ name: Veille La Borbolla / Braña Sana
 
 on:
   schedule:
-    # Chaque lundi à 5h05 UTC (≈ 7h05 en été / 6h05 en hiver, Europe/Brussels)
-    - cron: "5 5 * * 1"
+    # Chaque vendredi à 18h05 UTC (≈ 19h05 en hiver / 20h05 en été, Europe/Brussels) :
+    # le contenu est prêt pour la relecture du samedi dans le hub.
+    - cron: "5 18 * * 5"
   workflow_dispatch: {}
 
 permissions:
