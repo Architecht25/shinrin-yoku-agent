@@ -29,4 +29,11 @@ export const config = {
   recipients: [process.env.RECIPIENT_EMAIL_1, process.env.RECIPIENT_EMAIL_2].filter(Boolean),
 
   dashboardUrl: process.env.DASHBOARD_URL || '',
+
+  // Hub d'agents : envoi actif seulement si HUB_ENABLED === 'true'.
+  hub: {
+    enabled: process.env.HUB_ENABLED === 'true',
+    url: process.env.HUB_URL || '',
+    token: process.env.HUB_TOKEN || '',
+  },
 };
