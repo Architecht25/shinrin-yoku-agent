@@ -39,6 +39,9 @@ jobs:
           RECIPIENT_EMAIL_1: robin@manage-green.be
           RECIPIENT_EMAIL_2: amicie@manage-green.be
           DASHBOARD_URL: "https://architecht25.github.io/shinrin-yoku-agent/"
+          HUB_ENABLED: "true"
+          HUB_URL: ${{ secrets.HUB_URL }}
+          HUB_TOKEN: ${{ secrets.HUB_TOKEN }}
 
       - name: Commit et push des nouvelles fiches
         run: |
