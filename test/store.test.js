@@ -63,3 +63,26 @@ describe('partitionNewArticles', () => {
     assert.equal(nouveaux.length, 1);
   });
 });
+
+describe('déduplication par PMID et DOI', () => {
+  const store = { fiches: [{ pmid: '42', doi: '10.1/ancien', titre: 'Titre réécrit par le modèle' }, { pmid: '7', doi: null, titre: 'Sans DOI' }] };
+  const nouveaux = (a) => partitionNewArticles(store, a).map((x) => x.id);
+
+  test('même PMID : connu, même si le DOI et le titre diffèrent', () => {
+    assert.deepEqual(nouveaux([{ id: 1, pmid: '42', doi: '10.1/corrige', title: 'Autre' }]), []);
+  });
+
+  test('un DOI ajouté après coup ne recrée pas la fiche', () => {
+    assert.deepEqual(nouveaux([{ id: 1, pmid: '7', doi: '10.1/nouveau', title: 'Sans DOI' }]), []);
+  });
+
+  test('même DOI normalisé (préfixe URL, casse) : connu', () => {
+    assert.deepEqual(nouveaux([{ id: 1, pmid: '99', doi: 'https://doi.org/10.1/ANCIEN', title: 'x' }]), []);
+  });
+
+  test('doublons du lot repérés par PMID ; une extraction échouée reste à retenter', () => {
+    assert.deepEqual(nouveaux([{ id: 1, pmid: '5', title: 'a' }, { id: 2, pmid: '5', doi: '10.1/b', title: 'b' }]), [1]);
+    const echec = { fiches: [{ pmid: '8', titre: 't', statut: 'extraction échouée' }] };
+    assert.equal(partitionNewArticles(echec, [{ pmid: '8', title: 't' }]).length, 1);
+  });
+});

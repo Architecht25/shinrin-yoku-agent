@@ -113,7 +113,8 @@ export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
  * manuelle), organisé par section thématique ; les fiches sont triées par date d'ajout
  * (les plus récentes en premier) au sein de chaque section.
  */
-export function buildFullExportMarkdown(fiches) {
+export function buildFullExportMarkdown(toutesLesFiches) {
+  const fiches = toutesLesFiches.filter((f) => f.statut !== 'extraction échouée');
   const entete = [
     '# Base de connaissances — Veille La Borbolla / Braña Sana',
     '',

@@ -1,15 +1,16 @@
 {
   "name": "shinrin-yoku-agent",
   "version": "1.0.0",
-  "description": "Agent de veille scientifique multi-thématiques (bain de forêt, repos/sommeil, retour au manuel, mindfulness, nutrition/longévité, santé préventive) pour Braña Sana / La Borbolla",
+  "description": "Agent de veille scientifique (bain de forêt, repos et sommeil, sieste et marche, retour au manuel) pour Braña Sana / La Borbolla",
   "type": "module",
   "private": true,
   "main": "src/index.js",
   "scripts": {
     "veille": "node src/index.js",
+    "veille:essai": "node src/index.js --dry-run",
     "export": "node src/export.js",
     "dashboard": "node src/exportHtml.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=20"
@@ -17,6 +18,6 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^0.32.1",
     "dotenv": "^16.4.5",
-    "nodemailer": "^9.1.1"
+    "nodemailer": "^10.6.1"
   }
 }
