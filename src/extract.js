@@ -5,6 +5,8 @@ import { TYPES_ETUDE, contrainteType, resoudreType } from './types-etude.js';
 
 export const MODEL = 'claude-sonnet-5';
 export const ECHEC_EXTRACTION = 'extraction échouée';
+/** L'étiquetage du niveau de preuve n'existe pas encore. */
+export const NIVEAU_NON_EVALUE = 'non évalué';
 const MAX_TOKENS_FICHE = 2048;
 
 export const FICHE_TOOL = {
@@ -120,6 +122,7 @@ function champsDuCode(article) {
     doi: article.doi || null,
     lien: article.url || null,
     source: article.source,
+    niveau_de_preuve: NIVEAU_NON_EVALUE,
     pmid: article.pmid || null,
     // Thématique attachée depuis la requête d'origine (src/themes.js) plutôt que devinée
     // par Claude : on la connaît déjà avec certitude, pas besoin de la faire deviner.

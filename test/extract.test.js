@@ -58,6 +58,7 @@ test('réponse valide : une fiche, un seul appel, type PubMed appliqué', async 
   assert.equal(client.appels.length, 1);
   assert.equal(fiche.type_etude, 'essai contrôlé randomisé');
   assert.equal(fiche.pmid, '111');
+  assert.equal(fiche.niveau_de_preuve, 'non évalué');
   assert.equal(fiche.statut, undefined);
 });
 
