@@ -26,7 +26,7 @@ export const CONTROLE_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu contrôles un journal de veille contre les fiches dont il est tiré. Pour chaque phrase numérotée, vérifie que tout ce qu'elle affirme figure dans la fiche indiquée (ou, sans fiche indiquée, dans l'ensemble des fiches). Signale une phrase si elle ajoute un fait, un chiffre, une population, une conclusion ou une application absents des fiches, si elle transforme une association en effet causal, ou si elle est plus affirmative que la fiche. Une reformulation simple et fidèle est acceptable. Pour les phrases « pour La Borbolla », une suggestion prudente qui découle de l'angle de la fiche est acceptable ; sans angle dans la fiche, signale-la. Réponds uniquement en appelant l'outil "signaler_affirmations" (liste vide si tout est soutenu).`;
+const SYSTEM_PROMPT = `Tu contrôles un journal de veille contre les fiches dont il est tiré. Pour chaque phrase numérotée, vérifie que tout ce qu'elle affirme figure dans la fiche indiquée (ou, sans fiche indiquée, dans l'ensemble des fiches). Signale une phrase si elle ajoute un fait, un chiffre, une population, une conclusion ou une application absents des fiches, si elle transforme une association en effet causal, ou si elle est plus affirmative que la fiche. Sont aussi à signaler : toute tendance ou état général de la recherche qu'aucune fiche n'énonce (« intérêt croissant », « de plus en plus d'études », « la science confirme ») et tout jugement ajouté par le rédacteur (« l'intuition reste raisonnable », « bénéfices plausibles »). Sois exigeant, y compris pour le titre de une et le chapeau. Une reformulation simple et fidèle, ou l'explication d'un terme technique, est acceptable. Pour les phrases « pour La Borbolla », une suggestion prudente qui découle de l'angle de la fiche est acceptable ; sans angle dans la fiche, signale-la. Réponds uniquement en appelant l'outil "signaler_affirmations" (liste vide si tout est soutenu).`;
 
 const CHAMPS_UNE = ['titre_journal', 'texte', 'pour_la_borbolla'];
 
@@ -84,7 +84,9 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
   const segments = segmenter(candidat);
 
   const parFiche = descriptions.map((d) => valeursSource(JSON.stringify({ ...d, id: undefined })));
-  const globales = new Set([...parFiche.flatMap((v) => [...v]), String(fiches.length)]);
+  // Le chapeau peut aussi compter les études du journal.
+  const comptes = [fiches.length, candidat.a_la_une.length, candidat.a_la_une.length + candidat.en_bref.length];
+  const globales = new Set([...parFiche.flatMap((v) => [...v]), ...comptes.map(String)]);
   const rejetes = new Map();
   for (const s of segments) {
     const absents = chiffresAbsents(s.phrase, s.fiche_id === null ? globales : parFiche[s.fiche_id]);

@@ -18,6 +18,11 @@ test('chiffre absent ou arrondi repéré ; les sigles ne comptent pas', () => {
   assert.deepEqual(chiffresAbsents('Score SF-36, COVID-19, CO2, récepteur 5-HT, imagerie 3D.', valeurs), []);
 });
 
+test('les nombres écrits en français sont contrôlés aussi', () => {
+  assert.deepEqual(chiffresAbsents('Cinq semaines, vingt-et-un adultes, une marche.', valeurs), []);
+  assert.deepEqual(chiffresAbsents('Neuf études et trente-six essais. Une sixième piste.', valeurs), ['9', '36']);
+});
+
 test('seule la phrase au chiffre non sourcé est retirée', () => {
   const r = retirerPhrasesNonSourcees('Marche de 30 minutes. Stress réduit de 40 %. Effet à confirmer.', valeurs);
   assert.equal(r.texte, 'Marche de 30 minutes. Effet à confirmer.');

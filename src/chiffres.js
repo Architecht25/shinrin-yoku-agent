@@ -10,6 +10,26 @@ const MOTS = {
 const DIZAINES = { twenty: 20, thirty: 30, forty: 40, fifty: 50, sixty: 60, seventy: 70, eighty: 80, ninety: 90 };
 const UNITES = Object.keys(MOTS).slice(0, 9).join('|');
 
+// « un » et « une » sont d'abord des articles : ils ne sont pas contrôlés.
+const UNITES_FR = ['deux', 'trois', 'quatre', 'cinq', 'six', 'sept', 'huit', 'neuf'];
+const MOTS_FR = {
+  ...Object.fromEntries(UNITES_FR.map((m, i) => [m, i + 2])),
+  dix: 10, onze: 11, douze: 12, treize: 13, quatorze: 14, quinze: 15, seize: 16,
+  'dix-sept': 17, 'dix-huit': 18, 'dix-neuf': 19,
+  vingt: 20, trente: 30, quarante: 40, cinquante: 50, soixante: 60,
+};
+
+/** « vingt-et-un », « trente-six », « neuf » → chiffres, pour les contrôler comme les autres. */
+function chiffrerMotsFrancais(texte) {
+  return texte.replace(/(?<![\p{L}-])\p{L}+(?:-\p{L}+)*(?![\p{L}-])/gu, (mot) => {
+    const bas = mot.toLowerCase();
+    if (Object.hasOwn(MOTS_FR, bas)) return String(MOTS_FR[bas]);
+    const [, dizaine, unite] = bas.match(/^(vingt|trente|quarante|cinquante|soixante)(?:-et)?-(\p{L}+)$/u) || [];
+    const valeur = unite === 'un' || unite === 'une' ? 1 : MOTS_FR[unite];
+    return dizaine && valeur ? String(MOTS_FR[dizaine] + valeur) : mot;
+  });
+}
+
 const canon = (n) => String(Number(n));
 
 /**
@@ -31,7 +51,7 @@ const grouperMilliers = (texte, separateurs) =>
 
 /** Texte généré, en français : espace pour les milliers, virgule décimale. */
 function chiffresGeneres(texte) {
-  const normalise = grouperMilliers(String(texte || ''), ' \\u00a0\\u202f\\u2009').replace(/(\d),(?=\d)/g, '$1.');
+  const normalise = grouperMilliers(chiffrerMotsFrancais(String(texte || '')), ' \\u00a0\\u202f\\u2009').replace(/(\d),(?=\d)/g, '$1.');
   return chiffresDe(normalise);
 }
 
@@ -41,6 +61,7 @@ export function valeursSource(source) {
   // Les séparateurs sont ambigus : on retient les deux lectures.
   const lectures = [
     brut,
+    chiffrerMotsFrancais(brut),
     grouperMilliers(brut, ', \\u00a0\\u202f\\u2009'),
     brut.replace(/(\d),(?=\d)/g, '$1.'),
   ];
@@ -49,6 +70,7 @@ export function valeursSource(source) {
   const bas = brut.toLowerCase();
   const compose = new RegExp(`\\b(${Object.keys(DIZAINES).join('|')})(?:[- ](${UNITES}))?\\b`, 'g');
   for (const [, d, u] of bas.matchAll(compose)) valeurs.add(canon(DIZAINES[d] + (u ? MOTS[u] : 0)));
+  if (/\bboth\b/.test(bas)) valeurs.add('2');
   for (const mot of bas.match(/[a-z]+/g) || []) {
     if (mot in MOTS) valeurs.add(canon(MOTS[mot]));
   }
