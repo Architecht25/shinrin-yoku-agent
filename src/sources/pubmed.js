@@ -123,57 +123,85 @@ function stripTags(str) {
 }
 
 function decodeEntities(str) {
+  const point = (n, brut) => (n > 0 && n <= 0x10ffff ? String.fromCodePoint(n) : brut);
+  // &amp; en dernier : « &amp;lt; » doit donner « &lt; », pas « < ».
   return str
-    .replace(/&amp;/g, '&')
+    .replace(/&#x([0-9a-f]+);/gi, (m, h) => point(parseInt(h, 16), m))
+    .replace(/&#(\d+);/g, (m, d) => point(Number(d), m))
     .replace(/&lt;/g, '<')
     .replace(/&gt;/g, '>')
     .replace(/&quot;/g, '"')
-    .replace(/&#39;/g, "'");
+    .replace(/&apos;/g, "'")
+    .replace(/&amp;/g, '&');
 }
 
-function parseArticlesXml(xml) {
+const texte = (brut) => decodeEntities(stripTags(brut));
+
+function premier(xml, pattern) {
+  return xml.match(pattern)?.[1] ?? null;
+}
+
+/**
+ * DOI de l'article lui-même : celui de son <ArticleIdList> (PubmedData), sinon son
+ * <ELocationID>. Les DOI de la bibliographie (<ReferenceList>) sont retirés en amont.
+ */
+function articleDoi(block) {
+  const pubmedData = premier(block, /<PubmedData>([\s\S]*?)<\/PubmedData>/) || '';
+  const ids = premier(pubmedData, /<ArticleIdList>([\s\S]*?)<\/ArticleIdList>/) || '';
+  const doi =
+    premier(ids, /<ArticleId IdType="doi">([\s\S]*?)<\/ArticleId>/) ||
+    premier(block, /<ELocationID(?=[^>]*EIdType="doi")[^>]*>([\s\S]*?)<\/ELocationID>/);
+  return doi ? decodeEntities(doi.trim()) : null;
+}
+
+export function parseArticlesXml(xml) {
   const articles = [];
   const articleBlocks = xml.match(/<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g) || [];
 
-  for (const block of articleBlocks) {
-    const pmidMatch = block.match(/<PMID[^>]*>(\d+)<\/PMID>/);
-    const titleMatch = block.match(/<ArticleTitle>([\s\S]*?)<\/ArticleTitle>/);
-    const abstractParts = extractAll(block, /<AbstractText[^>]*>([\s\S]*?)<\/AbstractText>/g);
-    const journalMatch = block.match(/<Title>([\s\S]*?)<\/Title>/);
-    const doiMatch = block.match(/<ArticleId IdType="doi">([\s\S]*?)<\/ArticleId>/);
+  for (const brut of articleBlocks) {
+    // La bibliographie et les commentaires liés portent leurs propres PMID et DOI.
+    const block = brut
+      .replace(/<ReferenceList>[\s\S]*<\/ReferenceList>/g, '')
+      .replace(/<CommentsCorrectionsList>[\s\S]*?<\/CommentsCorrectionsList>/g, '');
 
-    const yearMatch = block.match(/<PubDate>[\s\S]*?<Year>(\d{4})<\/Year>/);
-    const monthMatch = block.match(/<PubDate>[\s\S]*?<Month>([\w]+)<\/Month>/);
-    const dayMatch = block.match(/<PubDate>[\s\S]*?<Day>(\d{1,2})<\/Day>/);
-    const medlineDateMatch = block.match(/<PubDate>[\s\S]*?<MedlineDate>([\s\S]*?)<\/MedlineDate>/);
-
-    const lastNames = extractAll(block, /<LastName>([\s\S]*?)<\/LastName>/g);
-    const foreNames = extractAll(block, /<ForeName>([\s\S]*?)<\/ForeName>/g);
-    const authors = lastNames.map((last, i) => {
-      const fore = foreNames[i] ? ` ${foreNames[i]}` : '';
-      return decodeEntities(`${last}${fore}`);
+    const pmid = premier(block, /<PMID[^>]*>(\d+)<\/PMID>/);
+    const title = premier(block, /<ArticleTitle[^>]*>([\s\S]*?)<\/ArticleTitle>/);
+    // Résumé principal uniquement (pas <OtherAbstract>), avec les intitulés de section.
+    const resume = premier(block, /<Abstract>([\s\S]*?)<\/Abstract>/) || '';
+    const abstractParts = [...resume.matchAll(/<AbstractText([^>]*)>([\s\S]*?)<\/AbstractText>/g)].map(([, attrs, corps]) => {
+      const label = attrs.match(/Label="([^"]*)"/)?.[1];
+      return `${label ? `${decodeEntities(label)}: ` : ''}${texte(corps)}`;
     });
+    const journal = premier(block, /<Title>([\s\S]*?)<\/Title>/);
 
-    const publicationTypes = extractAll(block, /<PublicationType[^>]*>([\s\S]*?)<\/PublicationType>/g).map(
-      (t) => decodeEntities(stripTags(t))
-    );
+    const pubDate = premier(block, /<PubDate>([\s\S]*?)<\/PubDate>/) || '';
+    const medlineDate = premier(pubDate, /<MedlineDate>([\s\S]*?)<\/MedlineDate>/);
+    const date = medlineDate
+      ? medlineDate.trim()
+      : [/<Year>(\d{4})<\/Year>/, /<Month>(\w+)<\/Month>/, /<Day>(\d{1,2})<\/Day>/]
+          .map((p) => premier(pubDate, p))
+          .filter(Boolean)
+          .join(' ');
 
-    const pmid = pmidMatch ? pmidMatch[1] : null;
-    const doi = doiMatch ? decodeEntities(doiMatch[1].trim()) : null;
+    const authorList = premier(block, /<AuthorList[^>]*>([\s\S]*?)<\/AuthorList>/) || '';
+    const authors = extractAll(authorList, /<Author(?:\s[^>]*)?>([\s\S]*?)<\/Author>/g)
+      .map((a) => {
+        const last = premier(a, /<LastName>([\s\S]*?)<\/LastName>/);
+        const fore = premier(a, /<ForeName>([\s\S]*?)<\/ForeName>/);
+        return last ? decodeEntities(fore ? `${last} ${fore}` : last) : null;
+      })
+      .filter(Boolean);
 
-    let date = medlineDateMatch ? medlineDateMatch[1].trim() : '';
-    if (!date && yearMatch) {
-      date = [yearMatch[1], monthMatch?.[1], dayMatch?.[1]].filter(Boolean).join(' ');
-    }
+    const publicationTypes = extractAll(block, /<PublicationType(?:\s[^>]*)?>([\s\S]*?)<\/PublicationType>/g).map(texte);
 
     articles.push({
       pmid,
-      title: titleMatch ? decodeEntities(stripTags(titleMatch[1])) : '(titre indisponible)',
-      abstract: decodeEntities(stripTags(abstractParts.join('\n\n'))),
-      journal: journalMatch ? decodeEntities(stripTags(journalMatch[1])) : '',
+      title: title ? texte(title) : '(titre indisponible)',
+      abstract: abstractParts.join('\n\n'),
+      journal: journal ? texte(journal) : '',
       date,
       authors,
-      doi,
+      doi: articleDoi(block),
       publicationTypes,
       url: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : null,
       source: 'PubMed',

@@ -11,10 +11,12 @@ import { redigerJournal, journalToMarkdown } from './digest.js';
 import { buildRunMarkdown } from './markdown.js';
 import { createTransport, sendVeilleReport } from './email.js';
 import { writeDashboard } from './exportHtml.js';
+import { separerPreuve, enregistrerPreuves } from './preuves.js';
 import { buildHubPayload, sendToHub } from './hub.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, '..', 'veille-la-borbolla');
+const PREUVES_DIR = path.join(__dirname, '..', 'data', 'abstracts');
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -76,11 +78,13 @@ async function main() {
   const client = createAnthropicClient();
   const nouvellesFiches = [];
   const echecs = [];
+  const preuves = [];
 
   for (const article of nouveauxArticles) {
     console.log(`[veille] Extraction Claude : ${article.title.slice(0, 80)}...`);
     article._runDate = runDate;
-    const fiche = await extractFiche(client, article);
+    const { fiche, preuve } = separerPreuve(await extractFiche(client, article), article);
+    preuves.push(preuve);
     if (estExploitable(fiche)) nouvellesFiches.push(fiche);
     else {
       echecs.push(fiche);
@@ -94,6 +98,7 @@ async function main() {
   }
 
   store.fiches.push(...nouvellesFiches, ...echecs);
+  await enregistrerPreuves(PREUVES_DIR, preuves);
   await saveStore(store);
 
   // Publication hebdomadaire : uniquement les fiches nouvelles de ce run (la base complète

@@ -147,9 +147,20 @@ export async function extractFiche(client, article) {
       valider: validerFiche,
     });
     const { doi_ou_lien, type_etude: typeModele, ...rest } = reponse;
-    const { type } = resoudreType(article.publicationTypes, typeModele);
+    const { type, origine } = resoudreType(article.publicationTypes, typeModele);
     const codes = champsDuCode(article);
-    return { ...rest, type_etude: type, ...codes, lien: codes.lien || doi_ou_lien || null };
+    // Titre et date viennent de PubMed quand ils existent : le modèle ne les réécrit pas.
+    const duCode = {
+      ...(article.title ? { titre: article.title } : {}),
+      ...(article.date ? { date: article.date } : {}),
+    };
+    const fiche = { ...rest, ...duCode, type_etude: type, ...codes, lien: codes.lien || doi_ou_lien || null };
+    const origines = Object.fromEntries(
+      Object.keys(fiche).map((cle) => [cle, cle in codes || cle in duCode ? 'code' : 'modèle'])
+    );
+    origines.type_etude = origine;
+    if (!codes.lien && doi_ou_lien) origines.lien = 'modèle';
+    return { ...fiche, origines };
   } catch (err) {
     return {
       statut: ECHEC_EXTRACTION,

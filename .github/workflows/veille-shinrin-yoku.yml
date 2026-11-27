@@ -48,7 +48,7 @@ jobs:
         run: |
           git config user.name "veille-shinrin-yoku-bot"
           git config user.email "veille-shinrin-yoku-bot@users.noreply.github.com"
-          git add data/db.json veille-la-borbolla/
+          git add data/ veille-la-borbolla/
           git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
           git push
 
