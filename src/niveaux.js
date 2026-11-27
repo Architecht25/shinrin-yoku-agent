@@ -100,6 +100,12 @@ export function appliquerPrudence({ type, niveau, effectif, titre }, seuilEchant
   return { niveau, motif: null };
 }
 
+export const MENTION_PREPUBLICATION = 'Prépublication, non relue par des pairs';
+
+/** D'après le seul type PubMed « Preprint ». */
+export const estPrepublication = (publicationTypes = []) =>
+  publicationTypes.some((t) => t.toLowerCase().trim() === 'preprint');
+
 /** Étiquettes affichées : toujours lues sur la fiche, jamais dans un texte généré. */
 export function etiquettes(fiche) {
   return {
@@ -111,7 +117,10 @@ export function etiquettes(fiche) {
 
 export function ligneEtiquettes(fiche, separateur = ' — ') {
   const e = etiquettes(fiche);
-  return [e.type, `niveau de preuve : ${e.niveau}`, `extraction : ${e.confiance}`].join(separateur);
+  return [
+    ...(fiche.prepublication ? [`⚠️ ${MENTION_PREPUBLICATION}`] : []),
+    e.type, `niveau de preuve : ${e.niveau}`, `extraction : ${e.confiance}`,
+  ].join(separateur);
 }
 
 export const estObservationnelle = (fiche) =>

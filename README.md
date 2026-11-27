@@ -79,6 +79,10 @@ retenue : type, niveau, confiance, pertinence, DOI, PMID.
 **Études animales** : exclues par la requête PubMed, puis d'après le titre et le résumé
 (`src/etudes-animales.js`) quand ils ne disent rien d'humains.
 
+**Prépublications** : quand PubMed donne le type « Preprint », la mention « Prépublication,
+non relue par des pairs » accompagne l'étude dans le journal, les fiches et le tableau de
+bord. « Extraction vérifiée » veut dire conforme au résumé, pas relue par des pairs.
+
 **Rétractations** : exclues à la collecte ; chaque run revérifie les fiches des 12
 dernières semaines. Un avertissement est ajouté à la fiche, en tête du journal et du
 résumé envoyé au hub. Un article déjà livré au hub n'est pas modifié.

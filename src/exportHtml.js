@@ -359,6 +359,7 @@ export function buildHtml(fiches) {
     const pertinence = f.angle_brana_sana ? (Number(f.pertinence_centre ?? f.pertinence_brana_sana) || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
+      (f.prepublication ? '<span class="badge badge-retractation">⚠️ prépublication, non relue par des pairs</span>' : '') +
       (f.avertissement_retractation ? '<span class="badge badge-retractation">⚠️ rétractée</span>' : '') +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
       '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>' +
