@@ -42,6 +42,7 @@ const SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un court journal de veille 
 Règles impératives :
 - Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_brana_sana", de 0 à 5, des fiches, à vérifier avec leur contenu).
 - Style journalistique clair et bref, sans jargon, mais sans jamais surinterpréter : distingue association et effet causal, mentionne les limites importantes (petit échantillon, pas de groupe contrôle...).
+- Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.
 - Pas de ton marketing. Ce texte sera relu avant tout usage éditorial.
 - Réponds uniquement en appelant l'outil "rediger_journal".`;
@@ -56,12 +57,17 @@ function compactFiche(fiche, id) {
     resultat_principal: fiche.resultat_principal,
     limites: fiche.niveau_de_preuve_et_limites,
     angle_brana_sana: fiche.angle_brana_sana || '',
+    eligible_a_la_une: fiche.verification?.journal !== 'bref',
   };
+}
+
+export function decrireFiches(fiches) {
+  return fiches.map(compactFiche);
 }
 
 /** Une seule requête Claude pour rédiger le journal à partir de toutes les fiches du run. */
 export async function redigerJournal(client, fiches) {
-  const payload = fiches.map((f, i) => compactFiche(f, i));
+  const payload = decrireFiches(fiches);
   return appelerOutil(client, {
     model: MODEL,
     system: SYSTEM_PROMPT,
@@ -93,7 +99,7 @@ function lien(fiche) {
  * Met en forme le journal en Markdown. Les liens et métadonnées viennent des fiches
  * (par fiche_id), jamais du texte généré ; les ids invalides ou dupliqués sont ignorés.
  */
-export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl }) {
+export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, total = fiches.length }) {
   const vus = new Set();
   const resolve = (id) => {
     if (!Number.isInteger(id) || id < 0 || id >= fiches.length || vus.has(id)) return null;
@@ -110,8 +116,7 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl }) {
         '',
         a.texte,
         '',
-        `**Pour La Borbolla** : ${a.pour_la_borbolla}`,
-        '',
+        ...(a.pour_la_borbolla ? [`**Pour La Borbolla** : ${a.pour_la_borbolla}`, ''] : []),
         `*${f.type_etude} — ${f.thematique} — ${lien(f)}*`.replace(/ — \*$/, '*'),
       ].join('\n')
     );
@@ -124,6 +129,6 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl }) {
   const parts = [`# ${journal.titre_une}`, '', `*Veille La Borbolla — ${runDate}*`, '', journal.chapeau];
   if (une.length) parts.push('', '## À la une', '', une.join('\n\n---\n\n'));
   if (bref.length) parts.push('', '## En bref', '', bref.join('\n'));
-  parts.push('', '---', '', `${fiches.length} étude(s) analysée(s) cette semaine ; toutes les fiches détaillées sont en pièce jointe.${dashboardUrl ? ` Tableau de bord : ${dashboardUrl}` : ''}`);
+  parts.push('', '---', '', `${total} étude(s) analysée(s) cette semaine ; toutes les fiches détaillées sont en pièce jointe.${dashboardUrl ? ` Tableau de bord : ${dashboardUrl}` : ''}`);
   return parts.join('\n');
 }

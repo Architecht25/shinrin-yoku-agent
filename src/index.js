@@ -7,7 +7,9 @@ import { THEMES } from './themes.js';
 import { fetchRecentPubmedArticles, fetchReferenceAuthorArticles } from './sources/pubmed.js';
 import { loadStore, saveStore, partitionNewArticles } from './store.js';
 import { createAnthropicClient, extractFiche, estExploitable } from './extract.js';
-import { redigerJournal, journalToMarkdown } from './digest.js';
+import { redigerJournal, journalToMarkdown, decrireFiches } from './digest.js';
+import { verifierFiche } from './verification.js';
+import { verifierJournal } from './verification-journal.js';
 import { buildRunMarkdown } from './markdown.js';
 import { createTransport, sendVeilleReport } from './email.js';
 import { writeDashboard } from './exportHtml.js';
@@ -83,7 +85,12 @@ async function main() {
   for (const article of nouveauxArticles) {
     console.log(`[veille] Extraction Claude : ${article.title.slice(0, 80)}...`);
     article._runDate = runDate;
-    const { fiche, preuve } = separerPreuve(await extractFiche(client, article), article);
+    let { fiche, preuve } = separerPreuve(await extractFiche(client, article), article);
+    if (estExploitable(fiche)) {
+      ({ fiche, preuve } = await verifierFiche(client, fiche, preuve));
+      const { statut, raison } = fiche.verification;
+      console.log(`[veille] Vérification : ${statut}${raison ? ` — ${raison}` : ''}`);
+    }
     preuves.push(preuve);
     if (estExploitable(fiche)) nouvellesFiches.push(fiche);
     else {
@@ -112,11 +119,23 @@ async function main() {
   // échoue, on retombe sur le rapport détaillé plutôt que de ne rien envoyer.
   let journalMarkdown = null;
   let journal = null;
+  const fichesJournal = nouvellesFiches.filter((f) => f.verification.journal !== 'exclue');
   try {
-    journal = await redigerJournal(client, nouvellesFiches);
-    journalMarkdown = journalToMarkdown(journal, nouvellesFiches, { runDate, dashboardUrl: config.dashboardUrl });
+    if (fichesJournal.length === 0) throw new Error('aucune fiche retenue après vérification');
+    const brouillon = await redigerJournal(client, fichesJournal);
+    const controle = await verifierJournal(client, brouillon, fichesJournal, decrireFiches(fichesJournal));
+    journal = controle.journal;
+    for (const { phrase, raison } of controle.suppressions) {
+      console.log(`[veille] Journal, phrase supprimée : « ${phrase} » (${raison})`);
+    }
+    journalMarkdown = journalToMarkdown(journal, fichesJournal, {
+      runDate,
+      dashboardUrl: config.dashboardUrl,
+      total: nouvellesFiches.length,
+    });
   } catch (err) {
-    console.error(`[veille] Échec de la rédaction du journal, repli sur le rapport détaillé : ${err.message}`);
+    journal = null;
+    console.error(`[veille] Échec de la rédaction ou du contrôle du journal, repli sur le rapport détaillé : ${err.message}`);
   }
 
   await mkdir(OUTPUT_DIR, { recursive: true });
@@ -131,7 +150,7 @@ async function main() {
     buildHubPayload({
       journal: journalMarkdown ? journal : null,
       body: journalMarkdown || fichesMarkdown,
-      fiches: nouvellesFiches,
+      fiches: journal ? fichesJournal : nouvellesFiches,
       runDate,
       runId: process.env.GITHUB_RUN_ID || `local-${new Date().toISOString()}`,
     })
