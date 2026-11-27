@@ -8,7 +8,8 @@ export function blocRetractations(fiches = []) {
   if (!fiches.length) return '';
   const lignes = fiches.map((f) => {
     const url = f.doi ? `https://doi.org/${f.doi}` : f.lien;
-    return `- **${f.titre}** (rapportée le ${f.ajoute_le}, rétractation détectée le ${f.avertissement_retractation.detectee_le}${url ? ` — [source](${url})` : ''})`;
+    const e = etiquettes(f);
+    return `- **${f.titre}** (niveau de preuve : ${e.niveau} — extraction : ${e.confiance} ; rapportée le ${f.ajoute_le}, rétractation détectée le ${f.avertissement_retractation.detectee_le}${url ? ` — [source](${url})` : ''})`;
   });
   return ['## ⚠️ Rétractations détectées', '', AVERTISSEMENT_RETRACTATION, '', ...lignes].join('\n');
 }

@@ -19,6 +19,7 @@ import { buildHubPayload } from './hub.js';
 import { mettreEnFile } from './file-envois.js';
 import { fenetreCollecte } from './fenetre.js';
 import { estRetracte, verifierRetractations } from './retractations.js';
+import { evaluerFicheAncienne } from './evaluation-ancienne.js';
 
 export const MAX_TENTATIVES_EXTRACTION = 3;
 
@@ -143,6 +144,19 @@ export async function preparer({
   // Des reprises seules qui échouent encore sont en revanche enregistrées, pour les compter.
   if (nouvellesFiches.length === 0 && inedits.length > 0) {
     throw new Error(`Toutes les extractions ont échoué (${echecs.length}) — rien n'est enregistré.`);
+  }
+
+  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là.
+  if (retractees.length) {
+    const articlesAnciens = await sources.parPmids(retractees.map((f) => f.pmid)).catch(() => []);
+    for (let i = 0; i < retractees.length; i += 1) {
+      const ancienne = retractees[i];
+      const { fiche, preuve } = await evaluerFicheAncienne(client, ancienne, articlesAnciens.find((a) => a.pmid === ancienne.pmid), runDate);
+      if (!preuve) continue;
+      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
+      retractees[i] = fiche;
+      preuves.push(preuve);
+    }
   }
 
   let envoi = null;

@@ -122,6 +122,10 @@ export async function verifierFiche(client, fiche, preuve) {
     raison = err.message.slice(0, 300);
   }
 
+  // Les contrôles du code ci-dessous peuvent changer le statut : on retient ici si le
+  // second appel a réellement eu lieu.
+  const relue = statut !== NON_VERIFIE;
+
   // Contrôle des chiffres par le code, sur les textes d'origine comme sur les corrections.
   const valeurs = valeursSource(`${preuve.titre_pubmed}\n${preuve.resume}`);
   const retires = [];
@@ -189,5 +193,5 @@ export async function verifierFiche(client, fiche, preuve) {
   f.verification = { statut, raison, journal };
   // « vérifié » seulement si le relecteur a confirmé sans rien changer.
   f.confiance_extraction = statut === CONFIRME ? CONFIANCE.VERIFIE : CONFIANCE.A_CONFIRMER;
-  return { fiche: f, preuve: { ...preuve, sources_champs: origines } };
+  return { fiche: f, preuve: { ...preuve, sources_champs: origines }, relue };
 }
