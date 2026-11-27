@@ -20,6 +20,18 @@ function ficheUrl(fiche) {
   return null;
 }
 
+/** Une entrée par étude retenue, avec ces seuls champs. */
+function metadataEtude(f) {
+  return {
+    type_etude: f.type_etude ?? null,
+    niveau_de_preuve: f.niveau_de_preuve ?? null,
+    confiance_extraction: f.confiance_extraction ?? null,
+    pertinence_centre: f.pertinence_centre ?? null,
+    doi: f.doi || null,
+    pmid: f.pmid || null,
+  };
+}
+
 /** Fiches citées dans le journal (ids valides, sans doublon) ; toutes les fiches en repli sans journal. */
 function citedFiches(journal, fiches) {
   if (!journal) return fiches;
@@ -39,7 +51,8 @@ function citedFiches(journal, fiches) {
  */
 export function buildHubPayload({ journal, body, fiches, runDate, runId, retractees = [] }) {
   const { year, week } = isoWeek(runDate);
-  const sources = citedFiches(journal, fiches)
+  const retenues = citedFiches(journal, fiches);
+  const sources = retenues
     .map((f) => ({ title: f.titre, url: ficheUrl(f) }))
     .filter((s) => s.url);
   return {
@@ -54,6 +67,7 @@ export function buildHubPayload({ journal, body, fiches, runDate, runId, retract
     kicker: 'Bien-être',
     sources,
     sensitivity: 'normal',
+    metadata: { etudes: retenues.map(metadataEtude) },
     external_id: `${year}-W${String(week).padStart(2, '0')}`,
     run_id: runId,
   };

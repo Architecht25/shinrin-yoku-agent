@@ -32,6 +32,12 @@ test('payload conforme au contrat', () => {
       { title: 'Étude B', url: 'https://e.org/b' },
     ],
     sensitivity: 'normal',
+    metadata: {
+      etudes: [
+        { type_etude: null, niveau_de_preuve: null, confiance_extraction: null, pertinence_centre: null, doi: '10.1/a', pmid: '1' },
+        { type_etude: null, niveau_de_preuve: null, confiance_extraction: null, pertinence_centre: null, doi: null, pmid: '2' },
+      ],
+    },
     external_id: '2026-W48',
     run_id: 'run-1',
   });
@@ -64,4 +70,14 @@ test('désactivé : aucun appel réseau', async () => {
   const res = await sendToHub(payload, opts(async () => { called = true; }, { enabled: false }));
   assert.equal(res.status, 'disabled');
   assert.equal(called, false);
+});
+
+test('metadata : pour chaque étude retenue, les six champs et rien d’autre, kind et external_id inchangés', () => {
+  const f = { titre: 'A', doi: '10.1/a', pmid: '1', type_etude: 'étude pilote', niveau_de_preuve: 'exploratoire', confiance_extraction: 'vérifié', pertinence_centre: 4, resultat_principal: 'secret', effectif: 12 };
+  const p = buildHubPayload({ journal: { chapeau: 'C', a_la_une: [{ fiche_id: 0 }], en_bref: [] }, body: 'b', fiches: [f, { ...f, pmid: '2' }], runDate: '2026-11-27', runId: 'r' });
+  assert.deepEqual(p.metadata, { etudes: [{ type_etude: 'étude pilote', niveau_de_preuve: 'exploratoire', confiance_extraction: 'vérifié', pertinence_centre: 4, doi: '10.1/a', pmid: '1' }] });
+  assert.equal(p.kind, 'info');
+  assert.equal(p.external_id, '2026-W48');
+  const vide = buildHubPayload({ journal: { chapeau: 'Rien.', a_la_une: [], en_bref: [] }, body: 'b', fiches: [], runDate: '2026-11-27', runId: 'r' });
+  assert.deepEqual(vide.metadata, { etudes: [] });
 });
