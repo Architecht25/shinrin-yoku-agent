@@ -20,6 +20,7 @@ import { mettreEnFile } from './file-envois.js';
 import { fenetreCollecte } from './fenetre.js';
 import { estRetracte, verifierRetractations } from './retractations.js';
 import { evaluerFicheAncienne } from './evaluation-ancienne.js';
+import { estEtudeAnimale } from './etudes-animales.js';
 
 export const MAX_TENTATIVES_EXTRACTION = 3;
 
@@ -95,9 +96,13 @@ export async function preparer({
   for (const theme of themes) {
     articles.push(...(await fetchThemeArticles(theme, jours, sources)));
   }
-  const publiables = articles.filter((a) => !estRetracte(a));
-  if (publiables.length < articles.length) {
-    console.log(`[veille] ${articles.length - publiables.length} publication(s) rétractée(s) ou avis de rétractation exclu(s).`);
+  const nonRetractes = articles.filter((a) => !estRetracte(a));
+  if (nonRetractes.length < articles.length) {
+    console.log(`[veille] ${articles.length - nonRetractes.length} publication(s) rétractée(s) ou avis de rétractation exclu(s).`);
+  }
+  const publiables = nonRetractes.filter((a) => !estEtudeAnimale(a));
+  for (const a of nonRetractes.filter(estEtudeAnimale)) {
+    console.log(`[veille] Étude animale exclue : ${a.title.slice(0, 100)}`);
   }
   const retractees = await verifierRetractations(store, runDate, sources.parPmids);
   const marquerCollecte = async () => {
@@ -109,7 +114,7 @@ export async function preparer({
   // Les extractions échouées sont traitées à part, avec un nombre de tentatives limité.
   const enEchec = new Set(store.fiches.filter((f) => f.statut === 'extraction échouée' && f.pmid).map((f) => f.pmid));
   const inedits = partitionNewArticles(store, publiables).filter((a) => !enEchec.has(a.pmid));
-  const aRetenter = (await articlesARetenter(store, sources)).filter((a) => !estRetracte(a));
+  const aRetenter = (await articlesARetenter(store, sources)).filter((a) => !estRetracte(a) && !estEtudeAnimale(a));
   console.log(`[veille] ${inedits.length} article(s) nouveau(x), ${aRetenter.length} à retenter.`);
 
   const aTraiter = [...inedits, ...aRetenter];
