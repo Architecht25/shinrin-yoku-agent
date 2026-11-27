@@ -8,7 +8,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fetchRecentPubmedArticles, fetchReferenceAuthorArticles, fetchArticles } from './sources/pubmed.js';
 import { loadStore, saveStore, partitionNewArticles, lireJson, ecrireJson } from './store.js';
 import { createAnthropicClient, extractFiche, estExploitable } from './extract.js';
-import { redigerJournal, journalToMarkdown, decrireFiches } from './digest.js';
+import { redigerJournal, journalToMarkdown, decrireFiches, retenirPourJournal, journalVide } from './digest.js';
+import { config } from './config.js';
 import { verifierFiche } from './verification.js';
 import { verifierJournal } from './verification-journal.js';
 import { buildRunMarkdown } from './markdown.js';
@@ -173,14 +174,19 @@ async function redigerSorties(client, nouvellesFiches, { runDate, runId, dashboa
   // contrôle échoue, on retombe sur le rapport détaillé plutôt que de ne rien envoyer.
   let journalMarkdown = null;
   let journal = null;
-  const fichesJournal = nouvellesFiches.filter((f) => f.verification.journal !== 'exclue');
+  const seuil = config.seuilPertinence;
+  const fichesJournal = retenirPourJournal(nouvellesFiches, seuil);
+  console.log(`[veille] ${fichesJournal.length} fiche(s) sur ${nouvellesFiches.length} au seuil de pertinence (${seuil}/5) ou au-dessus.`);
   try {
-    if (fichesJournal.length === 0) throw new Error('aucune fiche retenue après vérification');
-    const brouillon = await redigerJournal(client, fichesJournal);
-    const controle = await verifierJournal(client, brouillon, fichesJournal, decrireFiches(fichesJournal));
-    journal = controle.journal;
-    for (const { phrase, raison } of controle.suppressions) {
-      console.log(`[veille] Journal, phrase supprimée : « ${phrase} » (${raison})`);
+    if (fichesJournal.length === 0) {
+      journal = journalVide(seuil);
+    } else {
+      const brouillon = await redigerJournal(client, fichesJournal);
+      const controle = await verifierJournal(client, brouillon, fichesJournal, decrireFiches(fichesJournal));
+      journal = controle.journal;
+      for (const { phrase, raison } of controle.suppressions) {
+        console.log(`[veille] Journal, phrase supprimée : « ${phrase} » (${raison})`);
+      }
     }
     journalMarkdown = journalToMarkdown(journal, fichesJournal, { runDate, dashboardUrl, total: nouvellesFiches.length, retractees });
   } catch (err) {

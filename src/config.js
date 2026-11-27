@@ -38,6 +38,9 @@ export const config = {
 
   dashboardUrl: process.env.DASHBOARD_URL || '',
 
+  // Sous ce score de pertinence_centre, une fiche n'entre ni « À la une » ni « En bref ».
+  seuilPertinence: entier(process.env.SEUIL_PERTINENCE_CENTRE, 3, 0, 5),
+
   // Sous ce nombre de participants, une étude primaire est « exploratoire ».
   seuilPetitEchantillon: entier(process.env.SEUIL_PETIT_ECHANTILLON, 30, 1, 100000),
 

@@ -82,6 +82,23 @@ export async function redigerJournal(client, fiches) {
   });
 }
 
+/** Fiches admises dans le journal : ni écartées par la vérification, ni sous le seuil. */
+export function retenirPourJournal(fiches, seuil) {
+  return fiches.filter(
+    (f) => f.verification.journal !== 'exclue' && !f.avertissement_retractation && (f.pertinence_centre ?? 0) >= seuil
+  );
+}
+
+/** Semaine sans étude à rapporter : un résultat normal, rédigé sans le modèle. */
+export function journalVide(seuil) {
+  return {
+    titre_une: 'Rien cette semaine',
+    chapeau: `Aucune étude n'est à rapporter cette semaine : aucune n'atteint le seuil de pertinence pour le centre (${seuil}/5) avec une fiche utilisable.`,
+    a_la_une: [],
+    en_bref: [],
+  };
+}
+
 export function validerJournal(journal) {
   const erreurs = validerSchema(journal, JOURNAL_TOOL.input_schema);
   if (erreurs.length) return erreurs;

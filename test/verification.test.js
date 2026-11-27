@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { valeursSource, chiffresAbsents, retirerPhrasesNonSourcees } from '../src/chiffres.js';
 import { verifierFiche, MARQUE_A_CORRIGER } from '../src/verification.js';
 import { verifierJournal } from '../src/verification-journal.js';
-import { decrireFiches, journalToMarkdown } from '../src/digest.js';
+import { decrireFiches, journalToMarkdown, retenirPourJournal, journalVide } from '../src/digest.js';
 import { ficheModele, reponseOutil, clientSimule } from './helpers.js';
 
 const resume = 'Twenty-one adults (of 21,318 screened) walked for 30 minutes during five weeks; p < .05, SD 1·5.';
@@ -118,4 +118,12 @@ test('journal : verbe causal supprimé pour une étude observationnelle seulemen
   ] };
   const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), j, obs, decrireFiches(obs));
   assert.deepEqual(journal.en_bref.map((b) => b.phrase), ['Association vue.', 'La marche réduit le stress.']);
+});
+
+test('seuil de pertinence : en dessous, ni à la une ni en bref ; le niveau de preuve n’y change rien', () => {
+  const f = (pertinence_centre, journal = 'une', niveau_de_preuve = 'exploratoire') => ({ pertinence_centre, niveau_de_preuve, verification: { journal } });
+  const liste = [f(2, 'une', 'essai contrôlé'), f(3), f(5, 'bref'), f(5, 'exclue')];
+  assert.deepEqual(retenirPourJournal(liste, 3), [liste[1], liste[2]]);
+  assert.equal(retenirPourJournal(liste, 0).length, 3);
+  assert.equal(journalVide(3).a_la_une.length, 0);
 });

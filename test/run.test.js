@@ -23,7 +23,8 @@ beforeEach(async () => {
 });
 
 /** Client qui répond selon l'outil demandé. */
-const client = ({ extraction = () => reponseOutil(ficheModele()) } = {}) => ({
+const pertinente = () => reponseOutil(ficheModele({ angle_brana_sana: 'Atelier', pertinence_centre: 4 }));
+const client = ({ extraction = pertinente } = {}) => ({
   messages: {
     async create(r) {
       const outil = r.tool_choice.name;
@@ -77,7 +78,7 @@ describe('préparation', () => {
 
   test('échec partiel : fiche marquée, retentée ensuite puis remplacée', async () => {
     const deux = sources([articleFactice(), articleFactice({ pmid: '222', doi: '10.1/y', title: 'Other' })]);
-    const casse = client({ extraction: (r) => (r.messages[0].content.includes('Titre : Other') ? reponseOutil({}) : reponseOutil(ficheModele())) });
+    const casse = client({ extraction: (r) => (r.messages[0].content.includes('Titre : Other') ? reponseOutil({}) : pertinente()) });
     await lancer({ client: casse, sources: deux });
     let fiches = (await lire(emplacements.db)).fiches;
     assert.deepEqual(fiches.map((f) => [f.pmid, f.statut, f.tentatives]), [['111', undefined, undefined], ['222', 'extraction échouée', 1]]);
@@ -208,5 +209,19 @@ describe('rétractations dans un run', () => {
     const [envoi] = (await lire(emplacements.file)).envois;
     assert.match(envoi.email.markdown, /Rétractations détectées/);
     assert.match(envoi.hub.payload.summary, /rétractée/);
+  });
+});
+
+describe('seuil de pertinence', () => {
+  test('sous le seuil : « Rien cette semaine », sans appel de rédaction, fiches jointes', async () => {
+    const appels = [];
+    const base = client({ extraction: () => reponseOutil(ficheModele({ angle_brana_sana: 'Lien lointain', pertinence_centre: 2 })) });
+    await lancer({ client: { messages: { create: (r) => { appels.push(r.tool_choice.name); return base.messages.create(r); } } } });
+    assert.deepEqual(appels, ['enregistrer_fiche', 'enregistrer_verification']);
+    const [envoi] = (await lire(emplacements.file)).envois;
+    assert.match(envoi.email.markdown, /^# Rien cette semaine/);
+    assert.doesNotMatch(envoi.email.markdown, /À la une|En bref/);
+    assert.match(envoi.email.piece_jointe, /A simulated study/);
+    assert.match(envoi.email.sujet, /Le journal de la semaine/);
   });
 });
