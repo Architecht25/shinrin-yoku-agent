@@ -188,6 +188,8 @@ export function parseArticlesXml(xml) {
   const articleBlocks = xml.match(/<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g) || [];
 
   for (const brut of articleBlocks) {
+    // Avis de rétractation lié à cet article (lu avant de retirer les commentaires).
+    const retracte = /RefType="RetractionIn"/.test(brut);
     // La bibliographie et les commentaires liés portent leurs propres PMID et DOI.
     const block = brut
       .replace(/<ReferenceList>[\s\S]*<\/ReferenceList>/g, '')
@@ -232,6 +234,7 @@ export function parseArticlesXml(xml) {
       authors,
       doi: articleDoi(block),
       publicationTypes,
+      retracte,
       url: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : null,
       source: 'PubMed',
     });

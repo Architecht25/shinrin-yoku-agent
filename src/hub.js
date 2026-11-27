@@ -37,14 +37,18 @@ function citedFiches(journal, fiches) {
  * Construit le payload du hub. `body` est le contenu envoyé par email (journal, ou rapport
  * détaillé en repli) ; `journal` peut être null si la rédaction a échoué.
  */
-export function buildHubPayload({ journal, body, fiches, runDate, runId }) {
+export function buildHubPayload({ journal, body, fiches, runDate, runId, retractees = [] }) {
   const { year, week } = isoWeek(runDate);
   const sources = citedFiches(journal, fiches)
     .map((f) => ({ title: f.titre, url: ficheUrl(f) }))
     .filter((s) => s.url);
   return {
     title: `Veille bien-être, semaine ${String(week).padStart(2, '0')}`,
-    summary: journal?.chapeau || `${fiches.length} nouvelle(s) étude(s) analysée(s) cette semaine.`,
+    // L'avertissement ouvre le résumé : le hub l'affiche toujours, même sans déplier le corps.
+    summary: [
+      retractees.length ? `⚠️ ${retractees.length} publication(s) rétractée(s) : voir le détail dans l'article.` : '',
+      journal?.chapeau || `${fiches.length} nouvelle(s) étude(s) analysée(s) cette semaine.`,
+    ].filter(Boolean).join(' '),
     body,
     kind: 'info',
     kicker: 'Bien-être',

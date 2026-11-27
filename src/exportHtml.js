@@ -162,6 +162,7 @@ export function buildHtml(fiches) {
   .badge-pertinence {
     background: rgba(12,163,12,0.16); color: #0ca30c; font-weight: 600;
   }
+  .badge-retractation { background: rgba(208,59,59,0.16); color: #d03b3b; font-weight: 700; }
   .meta-line { color: var(--text-secondary); font-size: 0.78rem; margin-top: 4px; }
   .snippet { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; }
   .details { display: none; margin-top: 10px; border-top: 1px solid var(--gridline); padding-top: 10px; font-size: 0.85rem; }
@@ -358,6 +359,7 @@ export function buildHtml(fiches) {
     const pertinence = f.angle_brana_sana ? (Number(f.pertinence_centre ?? f.pertinence_brana_sana) || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
+      (f.avertissement_retractation ? '<span class="badge badge-retractation">⚠️ rétractée</span>' : '') +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
       '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>';
     card.appendChild(head);

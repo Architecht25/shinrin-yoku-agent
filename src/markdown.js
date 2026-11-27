@@ -1,5 +1,17 @@
 import { THEMES } from './themes.js';
 
+export const AVERTISSEMENT_RETRACTATION = '⚠️ Publication rétractée : ne plus utiliser ni citer ce résultat.';
+
+/** Section placée en tête quand des fiches déjà diffusées viennent d'être rétractées. */
+export function blocRetractations(fiches = []) {
+  if (!fiches.length) return '';
+  const lignes = fiches.map((f) => {
+    const url = f.doi ? `https://doi.org/${f.doi}` : f.lien;
+    return `- **${f.titre}** (rapportée le ${f.ajoute_le}, rétractation détectée le ${f.avertissement_retractation.detectee_le}${url ? ` — [source](${url})` : ''})`;
+  });
+  return ['## ⚠️ Rétractations détectées', '', AVERTISSEMENT_RETRACTATION, '', ...lignes].join('\n');
+}
+
 function ficheToMarkdown(fiche) {
   const lienLigne = fiche.doi
     ? `[DOI: ${fiche.doi}](https://doi.org/${fiche.doi})`
@@ -15,6 +27,7 @@ function ficheToMarkdown(fiche) {
   const lignes = [
     titre,
     '',
+    ...(fiche.avertissement_retractation ? [`**${AVERTISSEMENT_RETRACTATION}**`, ''] : []),
     `- **Auteurs** : ${fiche.auteurs || 'non précisé'}`,
     `- **Date** : ${fiche.date || 'non précisée'}`,
     `- **Source** : ${fiche.source || 'non précisée'}${fiche.pmid ? ` (PMID ${fiche.pmid})` : ''}`,
@@ -93,7 +106,7 @@ function sectionsMarkdown(fiches) {
  * Génère le Markdown d'un run de veille (uniquement les fiches nouvellement ajoutées),
  * organisé par section thématique.
  */
-export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
+export function buildRunMarkdown(fiches, { runDate, dashboardUrl, retractees = [] }) {
   const entete = [
     `# Veille La Borbolla / Braña Sana — ${runDate}`,
     '',
@@ -101,6 +114,7 @@ export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
     ...(dashboardUrl ? ['', `[Tableau de bord de tri](${dashboardUrl})`] : []),
     '',
     '---',
+    ...(retractees.length ? ['', blocRetractations(retractees), '', '---'] : []),
   ];
 
   const selection = selectionPertinenceMarkdown(fiches);

@@ -1,5 +1,6 @@
 import { MODEL } from './extract.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
+import { blocRetractations } from './markdown.js';
 
 const JOURNAL_TOOL = {
   name: 'rediger_journal',
@@ -102,7 +103,7 @@ function lien(fiche) {
  * Met en forme le journal en Markdown. Les liens et métadonnées viennent des fiches
  * (par fiche_id), jamais du texte généré ; les ids invalides ou dupliqués sont ignorés.
  */
-export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, total = fiches.length }) {
+export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, total = fiches.length, retractees = [] }) {
   const vus = new Set();
   const resolve = (id) => {
     if (!Number.isInteger(id) || id < 0 || id >= fiches.length || vus.has(id)) return null;
@@ -130,6 +131,7 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, tota
     .map(({ b, f }) => `- ${b.phrase} (${f.thematique}${lien(f) ? ` — ${lien(f)}` : ''})`);
 
   const parts = [`# ${journal.titre_une}`, '', `*Veille La Borbolla — ${runDate}*`, '', journal.chapeau];
+  if (retractees.length) parts.push('', blocRetractations(retractees));
   if (une.length) parts.push('', '## À la une', '', une.join('\n\n---\n\n'));
   if (bref.length) parts.push('', '## En bref', '', bref.join('\n'));
   parts.push('', '---', '', `${total} étude(s) analysée(s) cette semaine ; toutes les fiches détaillées sont en pièce jointe.${dashboardUrl ? ` Tableau de bord : ${dashboardUrl}` : ''}`);

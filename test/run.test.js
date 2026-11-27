@@ -191,3 +191,22 @@ describe('collecte', () => {
     });
   });
 });
+
+describe('rétractations dans un run', () => {
+  test('publication rétractée exclue à la collecte ; fiche récente signalée même sans nouveauté', async () => {
+    await mkdir(path.dirname(emplacements.db), { recursive: true });
+    await writeFile(emplacements.db, JSON.stringify({ fiches: [{ pmid: '9', doi: '10.1/neuf', titre: 'Ancienne', ajoute_le: '2026-11-20', thematique_id: 'sommeil', niveau_de_preuve: 'observationnelle' }] }));
+    const s = {
+      parMotsCles: async () => [articleFactice({ publicationTypes: ['Retracted Publication'] })],
+      parAuteurs: async () => [],
+      parPmids: async (ids) => ids.map((pmid) => articleFactice({ pmid, retracte: true })),
+    };
+    await lancer({ sources: s });
+    const fiches = (await lire(emplacements.db)).fiches;
+    assert.equal(fiches.length, 1);
+    assert.ok(fiches[0].avertissement_retractation);
+    const [envoi] = (await lire(emplacements.file)).envois;
+    assert.match(envoi.email.markdown, /Rétractations détectées/);
+    assert.match(envoi.hub.payload.summary, /rétractée/);
+  });
+});
