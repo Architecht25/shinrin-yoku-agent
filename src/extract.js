@@ -1,9 +1,13 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { config } from './config.js';
+import { appelerOutil, validerSchema } from './appel-outil.js';
+import { TYPES_ETUDE, contrainteType, resoudreType } from './types-etude.js';
 
 export const MODEL = 'claude-sonnet-5';
+export const ECHEC_EXTRACTION = 'extraction échouée';
+const MAX_TOKENS_FICHE = 2048;
 
-const FICHE_TOOL = {
+export const FICHE_TOOL = {
   name: 'enregistrer_fiche',
   description:
     "Enregistre la fiche structurée d'une étude scientifique liée à l'un des piliers de veille de Braña Sana.",
@@ -16,7 +20,8 @@ const FICHE_TOOL = {
       doi_ou_lien: { type: 'string', description: 'DOI si disponible, sinon le lien source fourni' },
       type_etude: {
         type: 'string',
-        enum: ['RCT', 'revue systématique', 'méta-analyse', 'étude observationnelle', 'cas clinique', 'essai en cours', 'autre'],
+        enum: TYPES_ETUDE,
+        description: "Type d'étude. Une revue n'est « systématique » que si le résumé décrit une méthode systématique de recherche des études. En cas de doute : « indéterminé ».",
       },
       mecanisme_evalue: {
         type: 'string',
@@ -32,7 +37,7 @@ const FICHE_TOOL = {
       },
       angle_brana_sana: {
         type: 'string',
-        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Laisser vide (chaîne vide) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
+        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Toujours fournir le champ ; chaîne vide si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
       },
       pertinence_brana_sana: {
         type: 'integer',
@@ -63,7 +68,17 @@ Règles impératives :
 - Le champ "angle_brana_sana" doit rester vide si aucun lien concret et honnête ne se justifie. Ne force jamais un rapprochement marketing.
 - Le champ "pertinence_brana_sana" (0 à 5) doit rester honnête et cohérent avec "angle_brana_sana" : 0 si ce dernier est vide, et proportionnel à la force de la preuve et au caractère concret de l'angle sinon. Ne jamais le gonfler.
 - Utilise exclusivement les informations fournies (titre, résumé, métadonnées) — n'invente aucune donnée absente.
+- Tous les champs de l'outil sont obligatoires, y compris "angle_brana_sana" (chaîne vide si aucun angle).
+- Si la thématique ou un type d'étude imposé par PubMed est indiqué, respecte-le.
+- N'écris un chiffre que s'il figure dans le titre ou le résumé.
 - Réponds uniquement en appelant l'outil "enregistrer_fiche".`;
+
+function consigneType(article) {
+  const { impose, permis } = contrainteType(article.publicationTypes);
+  if (impose) return `Type d'étude imposé par PubMed : ${impose}`;
+  if (permis) return `Types d'étude compatibles avec PubMed : ${permis.join(', ')}`;
+  return '';
+}
 
 function buildUserMessage(article) {
   return [
@@ -75,6 +90,7 @@ function buildUserMessage(article) {
     article.doi ? `DOI : ${article.doi}` : '',
     article.url ? `Lien source : ${article.url}` : '',
     article.publicationTypes?.length ? `Types de publication déclarés : ${article.publicationTypes.join(', ')}` : '',
+    consigneType(article),
     '',
     'Résumé (abstract) :',
     article.abstract || '(aucun résumé disponible — base-toi uniquement sur le titre et indique-le dans les limites)',
@@ -83,30 +99,26 @@ function buildUserMessage(article) {
     .join('\n');
 }
 
-/**
- * Transforme un article brut (PubMed, etc.) en fiche structurée via Claude.
- * Renvoie null si Claude ne parvient pas à produire une fiche exploitable pour cet article
- * (on ignore l'article plutôt que de stocker une fiche vide ou inventée).
- */
-export async function extractFiche(client, article) {
-  const response = await client.messages.create({
-    model: MODEL,
-    max_tokens: 1024,
-    system: SYSTEM_PROMPT,
-    tools: [FICHE_TOOL],
-    tool_choice: { type: 'tool', name: FICHE_TOOL.name },
-    messages: [{ role: 'user', content: buildUserMessage(article) }],
-  });
+/** Validation après réception : schéma strict, limites non vides, score cohérent avec l'angle. */
+export function validerFiche(fiche) {
+  const erreurs = validerSchema(fiche, FICHE_TOOL.input_schema);
+  if (erreurs.length) return erreurs;
+  for (const cle of ['titre', 'type_etude', 'mecanisme_evalue', 'resultat_principal', 'niveau_de_preuve_et_limites']) {
+    if (!fiche[cle].trim()) erreurs.push(`champ vide : ${cle}`);
+  }
+  const score = fiche.pertinence_brana_sana;
+  const angle = fiche.angle_brana_sana.trim();
+  if (score < 0 || score > 5) erreurs.push('pertinence_brana_sana doit être entre 0 et 5');
+  if (angle && score === 0) erreurs.push('angle_brana_sana renseigné avec un score de 0');
+  if (!angle && score !== 0) erreurs.push('score non nul sans angle_brana_sana');
+  return erreurs;
+}
 
-  const toolUse = response.content.find((block) => block.type === 'tool_use');
-  if (!toolUse) return null;
-
-  const { doi_ou_lien, ...rest } = toolUse.input;
-
+/** Champs connus avec certitude du code, communs aux fiches réussies et échouées. */
+function champsDuCode(article) {
   return {
-    ...rest,
     doi: article.doi || null,
-    lien: article.url || doi_ou_lien || null,
+    lien: article.url || null,
     source: article.source,
     pmid: article.pmid || null,
     // Thématique attachée depuis la requête d'origine (src/themes.js) plutôt que devinée
@@ -117,6 +129,39 @@ export async function extractFiche(client, article) {
     chercheur_reference: article.chercheurReference || null,
     ajoute_le: article._runDate,
   };
+}
+
+/**
+ * Transforme un article brut (PubMed, etc.) en fiche structurée via Claude.
+ * Ne lève pas : après une réponse invalide retentée une fois (ou une erreur d'API), renvoie
+ * une fiche marquée « extraction échouée », sans aucun contenu produit par le modèle.
+ */
+export async function extractFiche(client, article) {
+  try {
+    const reponse = await appelerOutil(client, {
+      model: MODEL,
+      system: SYSTEM_PROMPT,
+      tool: FICHE_TOOL,
+      contenu: buildUserMessage(article),
+      maxTokens: MAX_TOKENS_FICHE,
+      valider: validerFiche,
+    });
+    const { doi_ou_lien, type_etude: typeModele, ...rest } = reponse;
+    const { type } = resoudreType(article.publicationTypes, typeModele);
+    const codes = champsDuCode(article);
+    return { ...rest, type_etude: type, ...codes, lien: codes.lien || doi_ou_lien || null };
+  } catch (err) {
+    return {
+      statut: ECHEC_EXTRACTION,
+      titre: article.title,
+      raison_echec: err.message.slice(0, 300),
+      ...champsDuCode(article),
+    };
+  }
+}
+
+export function estExploitable(fiche) {
+  return fiche.statut !== ECHEC_EXTRACTION;
 }
 
 export function createAnthropicClient() {

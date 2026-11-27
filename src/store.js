@@ -43,8 +43,11 @@ export async function saveStore(store) {
  * Sépare les articles bruts déjà connus (par DOI/titre) de ceux réellement nouveaux.
  */
 export function partitionNewArticles(store, articles) {
+  // Une fiche « extraction échouée » ne bloque pas une nouvelle tentative.
   const knownKeys = new Set(
-    store.fiches.map((f) => dedupKey({ doi: f.doi, titre: f.titre }))
+    store.fiches
+      .filter((f) => f.statut !== 'extraction échouée')
+      .map((f) => dedupKey({ doi: f.doi, titre: f.titre }))
   );
   const seenInBatch = new Set();
   const nouveaux = [];

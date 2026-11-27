@@ -6,7 +6,7 @@ import { config } from './config.js';
 import { THEMES } from './themes.js';
 import { fetchRecentPubmedArticles, fetchReferenceAuthorArticles } from './sources/pubmed.js';
 import { loadStore, saveStore, partitionNewArticles } from './store.js';
-import { createAnthropicClient, extractFiche } from './extract.js';
+import { createAnthropicClient, extractFiche, estExploitable } from './extract.js';
 import { redigerJournal, journalToMarkdown } from './digest.js';
 import { buildRunMarkdown } from './markdown.js';
 import { createTransport, sendVeilleReport } from './email.js';
@@ -75,15 +75,16 @@ async function main() {
 
   const client = createAnthropicClient();
   const nouvellesFiches = [];
+  const echecs = [];
 
   for (const article of nouveauxArticles) {
     console.log(`[veille] Extraction Claude : ${article.title.slice(0, 80)}...`);
     article._runDate = runDate;
-    try {
-      const fiche = await extractFiche(client, article);
-      if (fiche) nouvellesFiches.push(fiche);
-    } catch (err) {
-      console.error(`[veille] Échec d'extraction pour "${article.title}" : ${err.message}`);
+    const fiche = await extractFiche(client, article);
+    if (estExploitable(fiche)) nouvellesFiches.push(fiche);
+    else {
+      echecs.push(fiche);
+      console.error(`[veille] Extraction échouée pour "${article.title}" : ${fiche.raison_echec}`);
     }
   }
 
@@ -92,7 +93,7 @@ async function main() {
     return;
   }
 
-  store.fiches.push(...nouvellesFiches);
+  store.fiches.push(...nouvellesFiches, ...echecs);
   await saveStore(store);
 
   // Publication hebdomadaire : uniquement les fiches nouvelles de ce run (la base complète

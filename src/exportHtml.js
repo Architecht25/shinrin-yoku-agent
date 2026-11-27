@@ -42,7 +42,7 @@ function escapeHtml(str) {
 
 function buildHtml(fiches) {
   const themeMeta = buildThemeMeta();
-  const data = fiches.map((f) => ({
+  const data = fiches.filter((f) => f.statut !== 'extraction échouée').map((f) => ({
     ...f,
     thematique_id: f.thematique_id || '_non-classe',
     thematique: f.thematique || 'Non classé',

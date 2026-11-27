@@ -1,4 +1,5 @@
 import { MODEL } from './extract.js';
+import { appelerOutil, validerSchema } from './appel-outil.js';
 
 const JOURNAL_TOOL = {
   name: 'rediger_journal',
@@ -61,17 +62,25 @@ function compactFiche(fiche, id) {
 /** Une seule requête Claude pour rédiger le journal à partir de toutes les fiches du run. */
 export async function redigerJournal(client, fiches) {
   const payload = fiches.map((f, i) => compactFiche(f, i));
-  const response = await client.messages.create({
+  return appelerOutil(client, {
     model: MODEL,
-    max_tokens: 6000,
     system: SYSTEM_PROMPT,
-    tools: [JOURNAL_TOOL],
-    tool_choice: { type: 'tool', name: JOURNAL_TOOL.name },
-    messages: [{ role: 'user', content: `Fiches de la semaine (JSON) :\n${JSON.stringify(payload)}` }],
+    tool: JOURNAL_TOOL,
+    contenu: `Fiches de la semaine (JSON) :\n${JSON.stringify(payload)}`,
+    maxTokens: 6000,
+    valider: validerJournal,
   });
-  const toolUse = response.content.find((b) => b.type === 'tool_use');
-  if (!toolUse) throw new Error("Claude n'a pas produit de journal.");
-  return toolUse.input;
+}
+
+export function validerJournal(journal) {
+  const erreurs = validerSchema(journal, JOURNAL_TOOL.input_schema);
+  if (erreurs.length) return erreurs;
+  for (const [liste, schema] of [['a_la_une', JOURNAL_TOOL.input_schema.properties.a_la_une.items], ['en_bref', JOURNAL_TOOL.input_schema.properties.en_bref.items]]) {
+    journal[liste].forEach((item, i) => {
+      erreurs.push(...validerSchema(item, schema).map((e) => `${liste}[${i}] : ${e}`));
+    });
+  }
+  return erreurs;
 }
 
 function lien(fiche) {
