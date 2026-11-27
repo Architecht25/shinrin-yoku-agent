@@ -52,6 +52,10 @@ describe('préparation', () => {
     await lancer();
     assert.equal((await lire(emplacements.db)).fiches.length, 1);
     assert.ok((await lire(path.join(emplacements.preuves, '2026.json')))['111']);
+    // Aucun fichier enregistré ne contient le texte du résumé.
+    for (const f of [emplacements.db, emplacements.file, path.join(emplacements.preuves, '2026.json')]) {
+      assert.ok(!(await readFile(f, 'utf-8')).includes(articleFactice().abstract), f);
+    }
     const [envoi] = (await lire(emplacements.file)).envois;
     assert.equal(envoi.email.statut, 'à envoyer');
     assert.equal(envoi.hub.payload.external_id, '2026-W48');

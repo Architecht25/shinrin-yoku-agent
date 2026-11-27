@@ -39,7 +39,7 @@ src/types-etude.js          types d'étude et règles PubMed
 src/verification.js         second appel + contrôle des chiffres (src/chiffres.js)
 src/digest.js               journal
 src/verification-journal.js contrôle du journal contre les fiches
-src/preuves.js              data/abstracts/<année>.json
+src/preuves.js              data/abstracts/<année>.json (empreintes, sans texte)
 src/store.js                base et déduplication (PMID, DOI, titre)
 src/markdown.js, email.js, hub.js, exportHtml.js   sorties
 ```
@@ -55,6 +55,7 @@ src/markdown.js, email.js, hub.js, exportHtml.js   sorties
   plutôt qu'on diffuse.
 - Le tableau de bord est public : tout texte inséré doit rester échappé
   (`jsonPourScript`, `textContent`, `escapeHtml`).
+- Ne jamais écrire le texte d'un résumé dans un fichier versionné (dépôt public).
 - Aucune adresse ni aucun secret dans `data/` ou dans les messages d'erreur enregistrés.
   `.env` n'est jamais commité.
 

@@ -68,10 +68,15 @@ portent `niveau_de_preuve: "non évalué"` : l'étiquetage reste à faire.
 | Fichier | Contenu |
 |---|---|
 | `data/db.json` | les fiches, avec le résultat de leur vérification |
-| `data/abstracts/<année>.json` | par PMID : résumé, Publication Types, DOI, et origine de chaque champ (code, modèle, vérification) |
+| `data/abstracts/<année>.json` | par PMID : empreinte SHA-256 du résumé, Publication Types, DOI, et origine de chaque champ (code, modèle, vérification) |
 | `data/file-envois.json` | envois en attente ou abandonnés, sans adresses ni secrets |
 | `data/etat.json` | date de la dernière collecte |
 | `veille-la-borbolla/` | journaux, fiches et tableau de bord du dernier run |
+
+**Le texte des résumés n'est jamais enregistré** (dépôt public, droit d'auteur des
+éditeurs). Il sert à la vérification pendant le run. Pour revérifier une fiche, le
+redemander à PubMed par son PMID : une empreinte différente signale que le résumé a changé
+(ou que le parseur a été modifié). La version exacte vérifiée n'est donc pas conservée.
 
 ## Envois et reprises
 
@@ -113,9 +118,9 @@ l'envoi.
 ## Dépôt
 
 `Architecht25/shinrin-yoku-agent` est **public**, comme le tableau de bord GitHub Pages.
-Tout ce qui est commité est visible : base, résumés PubMed (qui peuvent être protégés par
-le droit d'auteur des éditeurs), journaux, angles pour le centre, adresses des
-destinataires dans le workflow, journaux d'exécution.
+Tout ce qui est commité est visible : base, journaux, angles pour le centre, adresses des
+destinataires dans le workflow, journaux d'exécution. Ne pas y commiter de résumés ni
+d'autres textes d'éditeurs.
 
 ## Ajouter ou ajuster une thématique
 
