@@ -51,37 +51,60 @@ export function segmenter(journal) {
   return segments;
 }
 
+const LONGUEUR_MAX_REPLI = 220;
+// Statistiques et notations qu'un lecteur de l'équipe n'a pas à déchiffrer.
+const TECHNIQUE = /(?<![\p{L}])(?:OR|RR|HR|IC|CI|SMD|MD|ANOVA|β)(?![\p{L}])|[pr]\s*[<=>≤≥]|[±β\[\]η²]|\d\s*%|\bn\s*=/u;
+
+/**
+ * Phrase de remplacement tirée de la fiche vérifiée : la première qui soit courte, sans
+ * statistiques, sans retrait signalé et sans verbe causal si l'étude est observationnelle.
+ * null s'il n'y en a pas : mieux vaut omettre l'étude (elle reste dans les fiches jointes).
+ */
+export function phraseDeRepli(fiche) {
+  return (
+    decouperPhrases(fiche.resultat_principal)
+      .map((p) => p.trim().replace(/;$/, '.'))
+      .find(
+        (p) =>
+          p.length <= LONGUEUR_MAX_REPLI && !TECHNIQUE.test(p) && !/^Retiré/.test(p) &&
+          !(estObservationnelle(fiche) && verbeCausal(p))
+      ) || null
+  );
+}
+
 /** Reconstruit le journal sans les phrases rejetées. */
 export function filtrerJournal(journal, segments, rejetes, fiches) {
   const texte = (champ) =>
     segments.filter((s) => s.champ === champ && !rejetes.has(s.id)).map((s) => s.phrase).join(' ');
   const intact = (champ, original) =>
     segments.some((s) => s.champ === champ && rejetes.has(s.id)) ? texte(champ) : original;
+  // Sans sa première phrase, un texte perd son sujet : on ne publie pas la suite.
+  const decapite = (champ) => rejetes.has(`${champ}.0`);
+
+  const aLaUne = [];
+  const rabattues = [];
+  journal.a_la_une.forEach((a, n) => {
+    if (decapite(`une.${n}.texte`)) {
+      rabattues.push({ fiche_id: a.fiche_id, phrase: phraseDeRepli(fiches[a.fiche_id]) });
+      return;
+    }
+    aLaUne.push({
+      fiche_id: a.fiche_id,
+      titre_journal: intact(`une.${n}.titre_journal`, a.titre_journal) || fiches[a.fiche_id].titre,
+      texte: intact(`une.${n}.texte`, a.texte),
+      pour_la_borbolla: intact(`une.${n}.pour_la_borbolla`, a.pour_la_borbolla),
+    });
+  });
+  const enBref = journal.en_bref.map((b, n) => ({
+    fiche_id: b.fiche_id,
+    phrase: decapite(`bref.${n}`) ? phraseDeRepli(fiches[b.fiche_id]) : intact(`bref.${n}`, b.phrase),
+  }));
 
   return {
     titre_une: intact('titre_une', journal.titre_une) || 'Veille La Borbolla : les études de la semaine',
     chapeau: intact('chapeau', journal.chapeau) || `${fiches.length} étude(s) retenue(s) cette semaine.`,
-    a_la_une: journal.a_la_une
-      .map((a, n) => ({
-        fiche_id: a.fiche_id,
-        titre_journal: intact(`une.${n}.titre_journal`, a.titre_journal) || fiches[a.fiche_id].titre,
-        // Sans sa première phrase, un article perd son sujet : on reprend alors le résultat
-        // de la fiche vérifiée plutôt que de publier une suite sans début.
-        texte: rejetes.has(`une.${n}.texte.0`)
-          ? fiches[a.fiche_id].resultat_principal
-          : intact(`une.${n}.texte`, a.texte),
-        pour_la_borbolla: intact(`une.${n}.pour_la_borbolla`, a.pour_la_borbolla),
-      }))
-      .filter((a) => a.texte),
-    en_bref: journal.en_bref
-      .map((b, n) => ({
-        fiche_id: b.fiche_id,
-        // Même règle qu'à la une : sans son début, la phrase n'est plus lisible.
-        phrase: rejetes.has(`bref.${n}.0`)
-          ? decouperPhrases(fiches[b.fiche_id].resultat_principal)[0]
-          : intact(`bref.${n}`, b.phrase),
-      }))
-      .filter((b) => b.phrase),
+    a_la_une: aLaUne.filter((a) => a.texte),
+    en_bref: [...rabattues, ...enBref].filter((b) => b.phrase),
   };
 }
 

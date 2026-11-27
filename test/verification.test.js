@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { valeursSource, chiffresAbsents, retirerPhrasesNonSourcees } from '../src/chiffres.js';
 import { verifierFiche, MARQUE_A_CORRIGER } from '../src/verification.js';
-import { verifierJournal, titreTropAffirmatif } from '../src/verification-journal.js';
+import { verifierJournal, titreTropAffirmatif, phraseDeRepli } from '../src/verification-journal.js';
 import { decrireFiches, journalToMarkdown, retenirPourJournal, journalVide } from '../src/digest.js';
 import { ficheModele, reponseOutil, clientSimule } from './helpers.js';
 
@@ -95,16 +95,20 @@ test('journal : fiche non éligible retirée de la une, chiffres et affirmations
   assert.match(md, /3 étude\(s\) analysée\(s\)/);
 });
 
-test('première phrase supprimée : le texte reprend le résultat de la fiche', async () => {
+test('à la une sans sa première phrase : rabattue en « En bref » avec une phrase courte de la fiche', async () => {
   const client = clientSimule(reponseOutil({ non_soutenues: [{ id: 'une.0.texte.0', raison: 'absent' }] }));
-  const { journal } = await verifierJournal(client, brouillon, fiches, decrireFiches(fiches));
-  assert.equal(journal.a_la_une[0].texte, 'Marche de 30 minutes.');
+  const { journal } = await verifierJournal(client, { ...brouillon, en_bref: [] }, fiches, decrireFiches(fiches));
+  assert.deepEqual(journal.a_la_une, []);
+  assert.deepEqual(journal.en_bref, [{ fiche_id: 0, phrase: 'Marche de 30 minutes.' }]);
 });
 
-test('« En bref » sans sa première phrase : la ligne reprend le résultat de la fiche', async () => {
-  const deux = { ...brouillon, en_bref: [{ fiche_id: 1, phrase: 'Début inventé. étude de petite portée, à confirmer.' }] };
-  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [{ id: 'bref.0.0', raison: 'absent' }] })), deux, fiches, decrireFiches(fiches));
-  assert.equal(journal.en_bref[0].phrase, 'Association observée.');
+test('repli : jamais de statistiques ni de bloc technique ; sans phrase sûre, rien', () => {
+  const covid = 'Sur 47 464 participants, la prévalence était de 52,34% (en baisse) ; un sommeil régulier était associé à un risque moindre (OR 0,81 [0,77-0,84]). Un rythme régulier était associé à moins de symptômes.';
+  assert.equal(phraseDeRepli({ resultat_principal: covid }), 'Un rythme régulier était associé à moins de symptômes.');
+  for (const resultat_principal of ['Différence nette (p < 0,05).', 'Longue énumération '.repeat(20), 'Retiré à la vérification : chiffre.', '']) {
+    assert.equal(phraseDeRepli({ resultat_principal }), null, resultat_principal);
+  }
+  assert.equal(phraseDeRepli({ resultat_principal: 'La marche réduit le stress.', niveau_de_preuve: 'observationnelle' }), null);
 });
 
 test('contrôle du journal impossible : lève, pour retomber sur le rapport détaillé', async () => {
