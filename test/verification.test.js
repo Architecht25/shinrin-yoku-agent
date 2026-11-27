@@ -102,6 +102,13 @@ test('à la une sans sa première phrase : rabattue en « En bref » avec une ph
   assert.deepEqual(journal.en_bref, [{ fiche_id: 0, phrase: 'Marche de 30 minutes.' }]);
 });
 
+test('étude annoncée jamais perdue : sans phrase sûre, renvoi vers la fiche, sans résultat', async () => {
+  const technique = [{ ...fiches[0], titre: 'Sleep and hypertension', resultat_principal: 'Risque accru (HR 1,2).' }, fiches[1]];
+  const client = clientSimule(reponseOutil({ non_soutenues: [{ id: 'une.0.texte.0', raison: 'absent' }] }));
+  const { journal } = await verifierJournal(client, { ...brouillon, en_bref: [] }, technique, decrireFiches(technique));
+  assert.deepEqual(journal.en_bref, [{ fiche_id: 0, phrase: '« Sleep and hypertension » : résultat à lire dans la fiche détaillée.' }]);
+});
+
 test('repli : jamais de statistiques ni de bloc technique ; sans phrase sûre, rien', () => {
   const covid = 'Sur 47 464 participants, la prévalence était de 52,34% (en baisse) ; un sommeil régulier était associé à un risque moindre (OR 0,81 [0,77-0,84]). Un rythme régulier était associé à moins de symptômes.';
   assert.equal(phraseDeRepli({ resultat_principal: covid }), 'Un rythme régulier était associé à moins de symptômes.');

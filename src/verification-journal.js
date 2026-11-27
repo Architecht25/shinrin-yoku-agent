@@ -58,7 +58,7 @@ const TECHNIQUE = /(?<![\p{L}])(?:OR|RR|HR|IC|CI|SMD|MD|ANOVA|β)(?![\p{L}])|[pr
 /**
  * Phrase de remplacement tirée de la fiche vérifiée : la première qui soit courte, sans
  * statistiques, sans retrait signalé et sans verbe causal si l'étude est observationnelle.
- * null s'il n'y en a pas : mieux vaut omettre l'étude (elle reste dans les fiches jointes).
+ * null s'il n'y en a pas.
  */
 export function phraseDeRepli(fiche) {
   return (
@@ -71,6 +71,9 @@ export function phraseDeRepli(fiche) {
       ) || null
   );
 }
+
+/** Une étude choisie ne disparaît jamais : le titre ou le chapeau peuvent l'annoncer. */
+const repli = (fiche) => phraseDeRepli(fiche) || `« ${fiche.titre} » : résultat à lire dans la fiche détaillée.`;
 
 /** Reconstruit le journal sans les phrases rejetées. */
 export function filtrerJournal(journal, segments, rejetes, fiches) {
@@ -85,7 +88,7 @@ export function filtrerJournal(journal, segments, rejetes, fiches) {
   const rabattues = [];
   journal.a_la_une.forEach((a, n) => {
     if (decapite(`une.${n}.texte`)) {
-      rabattues.push({ fiche_id: a.fiche_id, phrase: phraseDeRepli(fiches[a.fiche_id]) });
+      rabattues.push({ fiche_id: a.fiche_id, phrase: repli(fiches[a.fiche_id]) });
       return;
     }
     aLaUne.push({
@@ -97,7 +100,7 @@ export function filtrerJournal(journal, segments, rejetes, fiches) {
   });
   const enBref = journal.en_bref.map((b, n) => ({
     fiche_id: b.fiche_id,
-    phrase: decapite(`bref.${n}`) ? phraseDeRepli(fiches[b.fiche_id]) : intact(`bref.${n}`, b.phrase),
+    phrase: decapite(`bref.${n}`) ? repli(fiches[b.fiche_id]) : intact(`bref.${n}`, b.phrase),
   }));
 
   return {
