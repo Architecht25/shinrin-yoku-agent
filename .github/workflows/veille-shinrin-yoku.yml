@@ -28,9 +28,26 @@ jobs:
 
       - run: npm ci
 
-      - run: node src/index.js
+      - name: Préparer la veille (rien n'est envoyé)
+        run: node src/index.js --preparer
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          DASHBOARD_URL: "https://architecht25.github.io/shinrin-yoku-agent/"
+
+      - name: Commit et push de la base et de la file des envois
+        id: enregistrement
+        run: |
+          git config user.name "veille-shinrin-yoku-bot"
+          git config user.email "veille-shinrin-yoku-bot@users.noreply.github.com"
+          git add data/ veille-la-borbolla/
+          git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
+          git pull --rebase
+          git push
+
+      # Exécuté seulement si la base est enregistrée sur GitHub (étape précédente réussie).
+      - name: Envoyer (e-mail puis hub)
+        run: node src/index.js --envoyer
+        env:
           SMTP_HOST: smtp.resend.com
           SMTP_PORT: "587"
           SMTP_SECURE: "false"
@@ -39,17 +56,17 @@ jobs:
           SMTP_FROM: "Veille La Borbolla <veille-shinrin-yoku@ren0vate.be>"
           RECIPIENT_EMAIL_1: robin@manage-green.be
           RECIPIENT_EMAIL_2: amicie@manage-green.be
-          DASHBOARD_URL: "https://architecht25.github.io/shinrin-yoku-agent/"
           HUB_ENABLED: "true"
           HUB_URL: ${{ secrets.HUB_URL }}
           HUB_TOKEN: ${{ secrets.HUB_TOKEN }}
 
-      - name: Commit et push des nouvelles fiches
+      # Même si un envoi a échoué : la file garde ce qui reste à reprendre.
+      - name: Commit et push de l'état des envois
+        if: ${{ !cancelled() && steps.enregistrement.outcome == 'success' }}
         run: |
-          git config user.name "veille-shinrin-yoku-bot"
-          git config user.email "veille-shinrin-yoku-bot@users.noreply.github.com"
-          git add data/ veille-la-borbolla/
-          git diff --staged --quiet || git commit -m "veille: nouvelles fiches $(date -u +%Y-%m-%d)"
+          git add data/
+          git diff --staged --quiet || git commit -m "veille: état des envois $(date -u +%Y-%m-%d)"
+          git pull --rebase
           git push
 
       - name: Préparer le dossier de publication GitHub Pages

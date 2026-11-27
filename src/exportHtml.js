@@ -7,7 +7,6 @@ import { THEMES } from './themes.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const OUTPUT_DIR = path.join(__dirname, '..', 'veille-la-borbolla');
-const OUTPUT_PATH = path.join(OUTPUT_DIR, 'dashboard.html');
 
 // Couleurs catégorielles (palette validée, ordre fixe des slots 1 à 6 — voir
 // skill dataviz) attribuées par thématique, jamais par rang, pour que la
@@ -423,11 +422,12 @@ function buildHtml(fiches) {
 `;
 }
 
-export async function writeDashboard(store) {
+export async function writeDashboard(store, dossier = OUTPUT_DIR) {
   const html = buildHtml(store.fiches);
-  await mkdir(OUTPUT_DIR, { recursive: true });
-  await writeFile(OUTPUT_PATH, html, 'utf-8');
-  return OUTPUT_PATH;
+  const chemin = path.join(dossier, 'dashboard.html');
+  await mkdir(dossier, { recursive: true });
+  await writeFile(chemin, html, 'utf-8');
+  return chemin;
 }
 
 async function main() {

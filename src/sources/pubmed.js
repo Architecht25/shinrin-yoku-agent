@@ -75,19 +75,41 @@ export function withExclusions(query) {
   return `(${query}) ${EXCLUSIONS}`;
 }
 
-/**
- * Recherche les PMIDs les plus récents correspondant à la requête, triés par date de publication.
- */
-async function searchPmids(query, maxResults) {
-  const params = commonParams();
-  params.set('db', 'pubmed');
-  params.set('term', withExclusions(query));
-  params.set('retmax', String(maxResults));
-  params.set('sort', 'pub+date');
-  params.set('retmode', 'json');
+/** Garde-fou : au-delà, la requête est sans doute devenue trop large. */
+export const PLAFOND_PAR_RECHERCHE = 500;
+const LOT_EFETCH = 100;
 
-  const data = await fetchJson(`${EUTILS_BASE}/esearch.fcgi?${params.toString()}`);
-  return data?.esearchresult?.idlist || [];
+/**
+ * Recherche tous les PMIDs entrés dans PubMed depuis `jours` jours, page par page.
+ * La fenêtre porte sur la date d'entrée (edat), pas sur la date de publication : un article
+ * ajouté tard avec une date ancienne n'est pas manqué. Lève plutôt que de tronquer.
+ */
+async function searchPmids(query, taillePage, jours) {
+  const pmids = new Set();
+  for (let debut = 0; ; debut += taillePage) {
+    const params = commonParams();
+    params.set('db', 'pubmed');
+    params.set('term', withExclusions(query));
+    params.set('retstart', String(debut));
+    params.set('retmax', String(taillePage));
+    params.set('sort', 'pub+date');
+    params.set('datetype', 'edat');
+    params.set('reldate', String(jours));
+    params.set('retmode', 'json');
+
+    const data = await fetchJson(`${EUTILS_BASE}/esearch.fcgi?${params.toString()}`);
+    const resultat = data?.esearchresult;
+    if (!resultat?.idlist || resultat.ERROR) {
+      throw new Error('PubMed API — réponse de recherche inexploitable.');
+    }
+    const total = Number(resultat.count);
+    if (total > PLAFOND_PAR_RECHERCHE) {
+      throw new Error(`PubMed — ${total} résultats pour une seule recherche (plafond ${PLAFOND_PAR_RECHERCHE}) : requête ou fenêtre à revoir.`);
+    }
+    resultat.idlist.forEach((id) => pmids.add(id));
+    if (debut + taillePage >= total) return [...pmids];
+    if (resultat.idlist.length === 0) throw new Error('PubMed API — pagination interrompue avant la fin.');
+  }
 }
 
 function textOf(node) {
@@ -101,7 +123,14 @@ function textOf(node) {
  * On utilise un parsing regex volontairement simple plutôt qu'un parseur XML complet :
  * le XML PubMed est stable et cette dépendance en moins garde le projet facile à maintenir en solo.
  */
-async function fetchArticles(pmids) {
+export async function fetchArticles(pmids) {
+  if (pmids.length > LOT_EFETCH) {
+    const articles = [];
+    for (let i = 0; i < pmids.length; i += LOT_EFETCH) {
+      articles.push(...(await fetchArticles(pmids.slice(i, i + LOT_EFETCH))));
+    }
+    return articles;
+  }
   if (pmids.length === 0) return [];
 
   const params = commonParams();
@@ -216,8 +245,8 @@ export function parseArticlesXml(xml) {
  * `query` est fourni par l'appelant (une thématique de src/themes.js) — ce module reste
  * générique et ne connaît aucune thématique en particulier.
  */
-export async function fetchRecentPubmedArticles({ query, maxResults = config.pubmed.maxResults }) {
-  const pmids = await searchPmids(query, maxResults);
+export async function fetchRecentPubmedArticles({ query, jours, taillePage = config.pubmed.maxResults }) {
+  const pmids = await searchPmids(query, taillePage, jours);
   const articles = await fetchArticles(pmids);
   return articles.map((article) => ({ ...article, origineRecherche: 'mot-clé' }));
 }
@@ -231,13 +260,14 @@ export async function fetchRecentPubmedArticles({ query, maxResults = config.pub
 export async function fetchReferenceAuthorArticles({
   query,
   authors,
-  maxResultsPerAuthor = config.pubmed.referenceAuthorMaxResults,
+  jours,
+  taillePage = config.pubmed.referenceAuthorMaxResults,
 }) {
   const results = [];
 
   for (const { nom, pubmedAuthorTerm } of authors) {
     const authorQuery = `${pubmedAuthorTerm} AND (${query})`;
-    const pmids = await searchPmids(authorQuery, maxResultsPerAuthor);
+    const pmids = await searchPmids(authorQuery, taillePage, jours);
     const articles = await fetchArticles(pmids);
     for (const article of articles) {
       results.push({ ...article, origineRecherche: 'reference', chercheurReference: nom });

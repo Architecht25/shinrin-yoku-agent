@@ -7,7 +7,7 @@ export const config = {
     apiKey: process.env.PUBMED_API_KEY || '',
     toolName: process.env.PUBMED_TOOL_NAME || 'shinrin-yoku-agent',
     contactEmail: process.env.PUBMED_CONTACT_EMAIL || '',
-    // Appliqués à chaque thématique de src/themes.js (les requêtes elles-mêmes sont
+    // Tailles de page (toutes les pages sont lues), appliquées à chaque thématique (les requêtes sont
     // définies par thématique dans ce fichier, pas via l'environnement).
     maxResults: Number(process.env.PUBMED_MAX_RESULTS || 20),
     referenceAuthorMaxResults: Number(process.env.PUBMED_REFERENCE_AUTHOR_MAX_RESULTS || 10),
