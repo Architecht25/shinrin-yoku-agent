@@ -1,7 +1,7 @@
 import { MODEL } from './extract.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
 import { blocRetractations } from './markdown.js';
-import { ligneEtiquettes, NIVEAUX_A_SIGNALER } from './niveaux.js';
+import { ligneEtiquettes, NIVEAUX_A_SIGNALER, MENTION_PREPUBLICATION } from './niveaux.js';
 
 const JOURNAL_TOOL = {
   name: 'rediger_journal',
@@ -46,9 +46,10 @@ Règles impératives :
 - Style journalistique clair et bref, sans jargon, mais sans jamais surinterpréter : distingue association et effet causal, mentionne les limites importantes (petit échantillon, pas de groupe contrôle...).
 - Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
 - N'écris pas les étiquettes (type, niveau de preuve) : elles sont ajoutées automatiquement depuis les fiches.
+- Une fiche avec "prepublication" à true n'a pas été relue par des pairs : ne la présente jamais comme solide, établie ou publiée dans une revue.
 - Aucun verbe causal pour une étude observationnelle.
 - Recopie les chiffres exactement comme dans les fiches, sans les arrondir (jamais « plus de ... »), ou n'en mets pas. Dans la première phrase de chaque texte, n'en mets aucun.
-- Un titre ne dit jamais qu'une chose est « confirmée », « prouvée » ou « démontrée ».
+- Ni les titres ni le chapeau ne disent qu'une chose est « confirmée », « prouvée » ou « démontrée ». Ne compte pas les études dans le chapeau.
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.
 - Pas de ton marketing. Ce texte sera relu avant tout usage éditorial.
 - Réponds uniquement en appelant l'outil "rediger_journal".`;
@@ -59,6 +60,7 @@ function compactFiche(fiche, id) {
     thematique: fiche.thematique,
     pertinence_centre: fiche.pertinence_centre ?? null,
     niveau_de_preuve: fiche.niveau_de_preuve,
+    prepublication: Boolean(fiche.prepublication),
     titre: fiche.titre,
     type_etude: fiche.type_etude,
     resultat_principal: fiche.resultat_principal,
@@ -138,6 +140,7 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, tota
       [
         `### ${a.titre_journal}`,
         '',
+        ...(f.prepublication ? [`**⚠️ ${MENTION_PREPUBLICATION}.**`, ''] : []),
         // Opinion ou niveau indéterminé : à la une seulement avec cet avertissement.
         ...(NIVEAUX_A_SIGNALER.includes(f.niveau_de_preuve) ? [`**⚠️ Niveau de preuve : ${f.niveau_de_preuve}.**`, ''] : []),
         a.texte,

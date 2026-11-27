@@ -147,3 +147,11 @@ test('titres : « confirmé », « prouvé », « démontré » refusés sauf n�
   assert.equal(journal.titre_une, 'Veille La Borbolla : les études de la semaine');
   assert.equal(journal.a_la_une[0].titre_journal, fiches[0].titre);
 });
+
+test('introduction : la phrase affirmative est retirée ; en première position, tout le chapeau est remplacé', async () => {
+  const sans = async (chapeau) =>
+    (await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), { ...brouillon, chapeau }, fiches, decrireFiches(fiches))).journal.chapeau;
+  assert.equal(await sans('Des pistes à suivre. Les études confirment l’intérêt du sommeil. Prudence.'), 'Des pistes à suivre. Prudence.');
+  assert.equal(await sans('Une étude vient confirmer l’intérêt du repos. Comme souvent, prudence.'), '2 étude(s) retenue(s) cette semaine.');
+  assert.equal(await sans('Rien n’est démontré à ce stade.'), 'Rien n’est démontré à ce stade.');
+});

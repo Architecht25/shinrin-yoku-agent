@@ -2,7 +2,7 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from './config.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
 import { TYPES_ETUDE, contrainteType, resoudreType } from './types-etude.js';
-import { LISTE_NIVEAUX, NIVEAU_NON_EVALUE, niveauParPubmed, resoudreNiveau } from './niveaux.js';
+import { LISTE_NIVEAUX, NIVEAU_NON_EVALUE, niveauParPubmed, resoudreNiveau, estPrepublication, MENTION_PREPUBLICATION } from './niveaux.js';
 
 export { NIVEAU_NON_EVALUE };
 
@@ -125,6 +125,7 @@ function buildUserMessage(article) {
     article.publicationTypes?.length ? `Types de publication déclarés : ${article.publicationTypes.join(', ')}` : '',
     consigneType(article),
     consigneNiveau(article),
+    estPrepublication(article.publicationTypes) ? `${MENTION_PREPUBLICATION}.` : '',
     '',
     'Résumé (abstract) :',
     article.abstract || '(aucun résumé disponible — base-toi uniquement sur le titre et indique-le dans les limites)',
@@ -156,6 +157,7 @@ function champsDuCode(article) {
     lien: article.url || null,
     source: article.source,
     niveau_de_preuve: NIVEAU_NON_EVALUE,
+    ...(estPrepublication(article.publicationTypes) ? { prepublication: true } : {}),
     pmid: article.pmid || null,
     // Thématique attachée depuis la requête d'origine (src/themes.js) plutôt que devinée
     // par Claude : on la connaît déjà avec certitude, pas besoin de la faire deviner.

@@ -1,5 +1,5 @@
 import { THEMES } from './themes.js';
-import { etiquettes } from './niveaux.js';
+import { etiquettes, MENTION_PREPUBLICATION } from './niveaux.js';
 
 export const AVERTISSEMENT_RETRACTATION = '⚠️ Publication rétractée : ne plus utiliser ni citer ce résultat.';
 
@@ -29,6 +29,7 @@ function ficheToMarkdown(fiche) {
   const lignes = [
     titre,
     '',
+    ...(fiche.prepublication ? [`**⚠️ ${MENTION_PREPUBLICATION}.**`, ''] : []),
     ...(fiche.avertissement_retractation ? [`**${AVERTISSEMENT_RETRACTATION}**`, ''] : []),
     `- **Auteurs** : ${fiche.auteurs || 'non précisé'}`,
     `- **Date** : ${fiche.date || 'non précisée'}`,
@@ -82,7 +83,10 @@ function selectionPertinenceMarkdown(fiches, { limit = 5 } = {}) {
     const top = [...groupes.get(theme.id)]
       .sort((a, b) => (b.pertinence_centre ?? b.pertinence_brana_sana ?? 0) - (a.pertinence_centre ?? a.pertinence_brana_sana ?? 0))
       .slice(0, limit);
-    const items = top.map((f) => `- **${f.titre}** — ${f.angle_brana_sana}`).join('\n');
+    // La sélection en tête du rapport affiche aussi la mention.
+    const items = top
+      .map((f) => `- **${f.titre}**${f.prepublication ? ` (⚠️ ${MENTION_PREPUBLICATION})` : ''} — ${f.angle_brana_sana}`)
+      .join('\n');
     return [`### ${theme.label}`, '', items].join('\n');
   });
 
