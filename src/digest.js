@@ -1,6 +1,7 @@
 import { MODEL } from './extract.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
 import { blocRetractations } from './markdown.js';
+import { ligneEtiquettes, NIVEAUX_A_SIGNALER } from './niveaux.js';
 
 const JOURNAL_TOOL = {
   name: 'rediger_journal',
@@ -135,17 +136,19 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, tota
       [
         `### ${a.titre_journal}`,
         '',
+        // Opinion ou niveau indéterminé : à la une seulement avec cet avertissement.
+        ...(NIVEAUX_A_SIGNALER.includes(f.niveau_de_preuve) ? [`**⚠️ Niveau de preuve : ${f.niveau_de_preuve}.**`, ''] : []),
         a.texte,
         '',
         ...(a.pour_la_borbolla ? [`**Pour La Borbolla** : ${a.pour_la_borbolla}`, ''] : []),
-        `*${f.type_etude} — ${f.thematique} — ${lien(f)}*`.replace(/ — \*$/, '*'),
+        `*${[ligneEtiquettes(f), f.thematique, lien(f)].filter(Boolean).join(' — ')}*`,
       ].join('\n')
     );
 
   const bref = (journal.en_bref || [])
     .map((b) => ({ b, f: resolve(b.fiche_id) }))
     .filter((x) => x.f)
-    .map(({ b, f }) => `- ${b.phrase} (${f.thematique}${lien(f) ? ` — ${lien(f)}` : ''})`);
+    .map(({ b, f }) => `- ${b.phrase} (${[f.thematique, ligneEtiquettes(f), lien(f)].filter(Boolean).join(' — ')})`);
 
   const parts = [`# ${journal.titre_une}`, '', `*Veille La Borbolla — ${runDate}*`, '', journal.chapeau];
   if (retractees.length) parts.push('', blocRetractations(retractees));

@@ -49,7 +49,8 @@ describe('buildRunMarkdown', () => {
     assert.match(md, /\*\*Date\*\* : 2026-01-15/);
     assert.match(md, /\[DOI: 10\.1234\/fake\.doi\]\(https:\/\/doi\.org\/10\.1234\/fake\.doi\)/);
     assert.match(md, /\*\*Résultat principal\*\* : Réduction observée du cortisol/);
-    assert.match(md, /\*\*Niveau de preuve \/ limites\*\* : Échantillon réduit/);
+    assert.match(md, /\*\*Niveau de preuve\*\* : non évalué — extraction : non évalué/);
+    assert.match(md, /\*\*Limites\*\* : Échantillon réduit/);
     assert.match(md, /\*\*Angle Braña Sana\*\* : Pertinent pour les sentiers/);
   });
 

@@ -361,7 +361,9 @@ export function buildHtml(fiches) {
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
       (f.avertissement_retractation ? '<span class="badge badge-retractation">⚠️ rétractée</span>' : '') +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
-      '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>';
+      '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>' +
+      '<span class="badge">niveau : ' + escapeHtml(f.niveau_de_preuve || 'non évalué') + '</span>' +
+      '<span class="badge">extraction : ' + escapeHtml(f.confiance_extraction || 'non évalué') + '</span>';
     card.appendChild(head);
 
     const meta = document.createElement('div');
@@ -381,7 +383,9 @@ export function buildHtml(fiches) {
       const rows = [
         ['Mécanisme évalué', f.mecanisme_evalue],
         ['Résultat principal', f.resultat_principal],
-        ['Niveau de preuve et limites', f.niveau_de_preuve_et_limites],
+        ['Niveau de preuve', (f.niveau_de_preuve || 'non évalué') + ' — extraction : ' + (f.confiance_extraction || 'non évalué')],
+        ['Justification du niveau', f.justification_niveau],
+        ['Limites', f.niveau_de_preuve_et_limites],
         ['Angle Braña Sana', f.angle_brana_sana || '(aucun angle retenu)'],
       ];
       rows.forEach(([label, value]) => {

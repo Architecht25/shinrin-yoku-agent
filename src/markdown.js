@@ -1,4 +1,5 @@
 import { THEMES } from './themes.js';
+import { etiquettes } from './niveaux.js';
 
 export const AVERTISSEMENT_RETRACTATION = '⚠️ Publication rétractée : ne plus utiliser ni citer ce résultat.';
 
@@ -32,12 +33,15 @@ function ficheToMarkdown(fiche) {
     `- **Date** : ${fiche.date || 'non précisée'}`,
     `- **Source** : ${fiche.source || 'non précisée'}${fiche.pmid ? ` (PMID ${fiche.pmid})` : ''}`,
     `- **DOI / lien** : ${lienLigne}`,
-    `- **Type d'étude** : ${fiche.type_etude || 'non précisé'}`,
+    `- **Type d'étude** : ${etiquettes(fiche).type}`,
     `- **Mécanisme évalué** : ${fiche.mecanisme_evalue || 'non précisé'}`,
     '',
     `**Résultat principal** : ${fiche.resultat_principal || 'non précisé'}`,
     '',
-    `**Niveau de preuve / limites** : ${fiche.niveau_de_preuve_et_limites || 'non précisé'}`,
+    `**Niveau de preuve** : ${etiquettes(fiche).niveau} — extraction : ${etiquettes(fiche).confiance}`,
+    '',
+    `- **Justification** : ${fiche.justification_niveau || 'non évaluée'}`,
+    `- **Limites** : ${fiche.niveau_de_preuve_et_limites || 'non précisé'}`,
   ];
 
   if (fiche.angle_brana_sana) {

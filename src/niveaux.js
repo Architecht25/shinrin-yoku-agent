@@ -100,6 +100,20 @@ export function appliquerPrudence({ type, niveau, effectif, titre }, seuilEchant
   return { niveau, motif: null };
 }
 
+/** Étiquettes affichées : toujours lues sur la fiche, jamais dans un texte généré. */
+export function etiquettes(fiche) {
+  return {
+    type: fiche.type_etude || 'indéterminé',
+    niveau: fiche.niveau_de_preuve || NIVEAU_NON_EVALUE,
+    confiance: fiche.confiance_extraction || NIVEAU_NON_EVALUE,
+  };
+}
+
+export function ligneEtiquettes(fiche, separateur = ' — ') {
+  const e = etiquettes(fiche);
+  return [e.type, `niveau de preuve : ${e.niveau}`, `extraction : ${e.confiance}`].join(separateur);
+}
+
 export const estObservationnelle = (fiche) =>
   fiche.niveau_de_preuve === NIVEAUX.OBSERVATIONNELLE || fiche.type_etude === 'étude observationnelle';
 
