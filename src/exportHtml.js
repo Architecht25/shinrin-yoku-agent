@@ -39,7 +39,18 @@ function escapeHtml(str) {
   }[c]));
 }
 
-function buildHtml(fiches) {
+/**
+ * JSON destiné à une balise <script> : aucun caractère ne doit pouvoir la refermer ni ouvrir
+ * un commentaire HTML. Les échappements \uXXXX restent du JSON valide.
+ */
+export function jsonPourScript(valeur) {
+  return JSON.stringify(valeur).replace(
+    /[<>&\u2028\u2029]/g,
+    (c) => `\\u${c.charCodeAt(0).toString(16).padStart(4, '0')}`
+  );
+}
+
+export function buildHtml(fiches) {
   const themeMeta = buildThemeMeta();
   const data = fiches.filter((f) => f.statut !== 'extraction échouée').map((f) => ({
     ...f,
@@ -187,8 +198,8 @@ function buildHtml(fiches) {
   <div class="count-line" id="countLine"></div>
   <div id="list"></div>
 </main>
-<script id="fiches-data" type="application/json">${JSON.stringify(data)}</script>
-<script id="theme-meta" type="application/json">${JSON.stringify(themeMeta)}</script>
+<script id="fiches-data" type="application/json">${jsonPourScript(data)}</script>
+<script id="theme-meta" type="application/json">${jsonPourScript(themeMeta)}</script>
 <script>
 (function () {
   const fiches = JSON.parse(document.getElementById('fiches-data').textContent);
@@ -294,7 +305,7 @@ function buildHtml(fiches) {
       const chip = document.createElement('div');
       chip.className = 'chip' + (state.themes.has(id) ? ' active' : '');
       chip.innerHTML = '<span class="dot" style="background:' + themeColor(id) + '"></span>' +
-        themeMeta[id].label + ' <span class="count">' + n + '</span>';
+        escapeHtml(themeMeta[id].label) + ' <span class="count">' + Number(n) + '</span>';
       chip.addEventListener('click', () => {
         if (state.themes.has(id)) state.themes.delete(id); else state.themes.add(id);
         render();
@@ -344,7 +355,7 @@ function buildHtml(fiches) {
 
     const head = document.createElement('div');
     head.className = 'card-head';
-    const pertinence = f.angle_brana_sana ? (f.pertinence_brana_sana || 0) : null;
+    const pertinence = f.angle_brana_sana ? (Number(f.pertinence_brana_sana) || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
@@ -379,7 +390,8 @@ function buildHtml(fiches) {
         details.appendChild(dt);
         details.appendChild(dd);
       });
-      if (f.lien) {
+      // Liens web uniquement : jamais de javascript: ni de data:.
+      if (/^https?:\\/\\//i.test(f.lien || '')) {
         const dt = document.createElement('dt');
         dt.textContent = 'Source';
         const dd = document.createElement('dd');
@@ -404,7 +416,7 @@ function buildHtml(fiches) {
   }
 
   function escapeHtml(str) {
-    return String(str || '').replace(/[&<>"']/g, (c) => ({
+    return String(str ?? '').replace(/[&<>"']/g, (c) => ({
       '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
     })[c]);
   }

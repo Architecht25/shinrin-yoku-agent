@@ -36,7 +36,7 @@ test('champs de l’article', () => {
   assert.equal(a.title, 'Walking and mood in adults ≥ 65');
   assert.equal(a.journal, 'J & Test');
   assert.equal(a.date, '2026 Nov');
-  assert.equal(a.abstract, 'METHODS: We enrolled 12 adults.\n\nRESULTS: p < 0.05 &lt;');
+  assert.equal(a.abstract, 'METHODS: We enrolled 12\u00a0adults.\n\nRESULTS: p < 0.05 &lt;');
   assert.deepEqual(a.authors, ['Dupont Jean', 'Li']);
   assert.deepEqual(a.publicationTypes, ['Journal Article', 'Review']);
 });

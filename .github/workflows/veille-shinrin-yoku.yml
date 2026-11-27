@@ -28,6 +28,9 @@ jobs:
 
       - run: npm ci
 
+      # Un test en échec arrête le run avant toute collecte et tout envoi.
+      - run: npm test
+
       - name: Préparer la veille (rien n'est envoyé)
         run: node src/index.js --preparer
         env:
