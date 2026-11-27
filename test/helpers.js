@@ -10,7 +10,11 @@ export function ficheModele(over = {}) {
     resultat_principal: 'Association observée.',
     niveau_de_preuve_et_limites: 'Non précisé dans le résumé.',
     angle_brana_sana: '',
-    pertinence_brana_sana: 0,
+    niveau_propose: 'indéterminé',
+    extrait_justification: '',
+    justification_niveau: 'non précisée',
+    effectif: 0,
+    pertinence_centre: 0,
     ...over,
   };
 }

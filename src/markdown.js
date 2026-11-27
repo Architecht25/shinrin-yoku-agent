@@ -62,7 +62,7 @@ function selectionPertinenceMarkdown(fiches, { limit = 5 } = {}) {
 
   const sections = themesAvecSelection.map((theme) => {
     const top = [...groupes.get(theme.id)]
-      .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+      .sort((a, b) => (b.pertinence_centre ?? b.pertinence_brana_sana ?? 0) - (a.pertinence_centre ?? a.pertinence_brana_sana ?? 0))
       .slice(0, limit);
     const items = top.map((f) => `- **${f.titre}** — ${f.angle_brana_sana}`).join('\n');
     return [`### ${theme.label}`, '', items].join('\n');

@@ -42,10 +42,10 @@ test('validation : champs, liste, limites et cohérence angle/score', () => {
     sansAngle,
     ficheModele({ type_etude: 'RCT' }),
     ficheModele({ niveau_de_preuve_et_limites: '  ' }),
-    ficheModele({ angle_brana_sana: 'Atelier', pertinence_brana_sana: 0 }),
-    ficheModele({ angle_brana_sana: '', pertinence_brana_sana: 2 }),
-    ficheModele({ angle_brana_sana: 'Atelier', pertinence_brana_sana: 9 }),
-    ficheModele({ pertinence_brana_sana: '0' }),
+    ficheModele({ angle_brana_sana: 'Atelier', pertinence_centre: 0 }),
+    ficheModele({ angle_brana_sana: '', pertinence_centre: 2 }),
+    ficheModele({ angle_brana_sana: 'Atelier', pertinence_centre: 9 }),
+    ficheModele({ pertinence_centre: '0' }),
     ficheModele({ champ_en_trop: 'x' }),
   ]) {
     assert.notDeepEqual(validerFiche(invalide), [], JSON.stringify(invalide));
@@ -58,7 +58,7 @@ test('réponse valide : une fiche, un seul appel, type PubMed appliqué', async 
   assert.equal(client.appels.length, 1);
   assert.equal(fiche.type_etude, 'essai contrôlé randomisé');
   assert.equal(fiche.pmid, '111');
-  assert.equal(fiche.niveau_de_preuve, 'non évalué');
+  assert.equal(fiche.niveau_de_preuve, 'essai contrôlé');
   assert.equal(fiche.statut, undefined);
 });
 

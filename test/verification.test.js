@@ -32,7 +32,7 @@ test('seule la phrase au chiffre non sourcé est retirée', () => {
 const preuve = { titre_pubmed: 'Walking study', resume, publication_types: ['Randomized Controlled Trial'], sources_champs: {} };
 const fiche = (o = {}) => ({ ...ficheModele({ type_etude: 'essai contrôlé randomisé', ...o }) });
 const avis = (o = {}) =>
-  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', ...o });
+  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', ...o });
 
 test('fiche confirmée : éligible à la une', async () => {
   const { fiche: f } = await verifierFiche(clientSimule(avis()), fiche(), preuve);
@@ -109,4 +109,13 @@ test('« En bref » sans sa première phrase : la ligne reprend le résultat de 
 
 test('contrôle du journal impossible : lève, pour retomber sur le rapport détaillé', async () => {
   await assert.rejects(verifierJournal(clientSimule(reponseOutil({})), brouillon, fiches, decrireFiches(fiches)));
+});
+
+test('journal : verbe causal supprimé pour une étude observationnelle seulement', async () => {
+  const obs = [{ ...fiches[0], niveau_de_preuve: 'observationnelle' }, { ...fiches[1], niveau_de_preuve: 'essai contrôlé' }];
+  const j = { titre_une: 'T', chapeau: 'C.', a_la_une: [], en_bref: [
+    { fiche_id: 0, phrase: 'Association vue. La marche réduit le stress.' }, { fiche_id: 1, phrase: 'La marche réduit le stress.' },
+  ] };
+  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), j, obs, decrireFiches(obs));
+  assert.deepEqual(journal.en_bref.map((b) => b.phrase), ['Association vue.', 'La marche réduit le stress.']);
 });

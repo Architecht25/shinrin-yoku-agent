@@ -29,7 +29,7 @@ const client = ({ extraction = () => reponseOutil(ficheModele()) } = {}) => ({
       const outil = r.tool_choice.name;
       if (outil === 'enregistrer_fiche') return extraction(r);
       if (outil === 'enregistrer_verification') {
-        return reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '' });
+        return reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '' });
       }
       if (outil === 'rediger_journal') return reponseOutil({ titre_une: 'T', chapeau: 'C.', a_la_une: [], en_bref: [{ fiche_id: 0, phrase: 'P.' }] });
       return reponseOutil({ non_soutenues: [] });

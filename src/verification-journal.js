@@ -6,6 +6,7 @@
 import { MODEL } from './extract.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
 import { valeursSource, chiffresAbsents, decouperPhrases } from './chiffres.js';
+import { estObservationnelle, verbeCausal } from './niveaux.js';
 
 export const CONTROLE_TOOL = {
   name: 'signaler_affirmations',
@@ -93,7 +94,7 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
   };
   const segments = segmenter(candidat);
 
-  const parFiche = descriptions.map((d) => valeursSource(JSON.stringify({ ...d, id: undefined })));
+  const parFiche = descriptions.map((d) => valeursSource(JSON.stringify({ ...d, id: undefined, pertinence_centre: undefined })));
   // Le chapeau peut aussi compter les études du journal.
   const comptes = [fiches.length, candidat.a_la_une.length, candidat.a_la_une.length + candidat.en_bref.length];
   const globales = new Set([...parFiche.flatMap((v) => [...v]), ...comptes.map(String)]);
@@ -101,6 +102,9 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
   for (const s of segments) {
     const absents = chiffresAbsents(s.phrase, s.fiche_id === null ? globales : parFiche[s.fiche_id]);
     if (absents.length) rejetes.set(s.id, `chiffre absent des fiches : ${absents.join(', ')}`);
+    // Les suggestions « pour La Borbolla » sont laissées au contrôle par le modèle.
+    const verbe = s.fiche_id !== null && !s.champ.endsWith('pour_la_borbolla') && estObservationnelle(fiches[s.fiche_id]) && verbeCausal(s.phrase);
+    if (verbe) rejetes.set(s.id, `verbe causal sur une étude observationnelle : ${verbe}`);
   }
 
   const reponse = await appelerOutil(client, {

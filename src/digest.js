@@ -40,9 +40,11 @@ const JOURNAL_TOOL = {
 const SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un court journal de veille scientifique pour La Borbolla / Braña Sana (centre bien-être en Asturies : sentiers et forêt, jardin, ateliers manuels, repos, sieste, marche et sommeil). Les lecteurs sont l'équipe du centre, pas des chercheurs.
 
 Règles impératives :
-- Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_brana_sana", de 0 à 5, des fiches, à vérifier avec leur contenu).
+- Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_centre", de 0 à 5, à vérifier avec le contenu ; il ne dit rien de la force de la preuve, donnée par "niveau_de_preuve").
 - Style journalistique clair et bref, sans jargon, mais sans jamais surinterpréter : distingue association et effet causal, mentionne les limites importantes (petit échantillon, pas de groupe contrôle...).
 - Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
+- N'écris pas les étiquettes (type, niveau de preuve) : elles sont ajoutées automatiquement depuis les fiches.
+- Aucun verbe causal pour une étude observationnelle.
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.
 - Pas de ton marketing. Ce texte sera relu avant tout usage éditorial.
 - Réponds uniquement en appelant l'outil "rediger_journal".`;
@@ -51,7 +53,8 @@ function compactFiche(fiche, id) {
   return {
     id,
     thematique: fiche.thematique,
-    pertinence_brana_sana: fiche.pertinence_brana_sana ?? null,
+    pertinence_centre: fiche.pertinence_centre ?? null,
+    niveau_de_preuve: fiche.niveau_de_preuve,
     titre: fiche.titre,
     type_etude: fiche.type_etude,
     resultat_principal: fiche.resultat_principal,

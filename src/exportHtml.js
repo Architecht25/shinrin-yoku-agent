@@ -342,7 +342,7 @@ export function buildHtml(fiches) {
         // pertinence décroissante — pour repérer vite ce qui compte parmi 60+ articles.
         byTheme[id]
           .slice()
-          .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+          .sort((a, b) => (b.pertinence_centre ?? b.pertinence_brana_sana ?? 0) - (a.pertinence_centre ?? a.pertinence_brana_sana ?? 0))
           .forEach((f) => listEl.appendChild(renderCard(f, id)));
       });
   }
@@ -355,7 +355,7 @@ export function buildHtml(fiches) {
 
     const head = document.createElement('div');
     head.className = 'card-head';
-    const pertinence = f.angle_brana_sana ? (Number(f.pertinence_brana_sana) || 0) : null;
+    const pertinence = f.angle_brana_sana ? (Number(f.pertinence_centre ?? f.pertinence_brana_sana) || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
