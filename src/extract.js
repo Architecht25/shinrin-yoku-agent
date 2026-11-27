@@ -39,7 +39,7 @@ export const FICHE_TOOL = {
       },
       angle_brana_sana: {
         type: 'string',
-        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Toujours fournir le champ ; chaîne vide si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
+        description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Toujours fournir le champ ; chaîne vide (sans expliquer pourquoi) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
       },
       pertinence_brana_sana: {
         type: 'integer',
@@ -71,6 +71,7 @@ Règles impératives :
 - Le champ "pertinence_brana_sana" (0 à 5) doit rester honnête et cohérent avec "angle_brana_sana" : 0 si ce dernier est vide, et proportionnel à la force de la preuve et au caractère concret de l'angle sinon. Ne jamais le gonfler.
 - Utilise exclusivement les informations fournies (titre, résumé, métadonnées) — n'invente aucune donnée absente.
 - Tous les champs de l'outil sont obligatoires, y compris "angle_brana_sana" (chaîne vide si aucun angle).
+- Deux cas seulement : soit "angle_brana_sana" décrit une application concrète et le score va de 1 à 5 ; soit "angle_brana_sana" vaut exactement "" et le score 0. N'écris jamais dans ce champ qu'il n'y a pas de lien, ni pourquoi.
 - Si la thématique ou un type d'étude imposé par PubMed est indiqué, respecte-le.
 - N'écris un chiffre que s'il figure dans le titre ou le résumé.
 - Réponds uniquement en appelant l'outil "enregistrer_fiche".`;
@@ -111,7 +112,7 @@ export function validerFiche(fiche) {
   const score = fiche.pertinence_brana_sana;
   const angle = fiche.angle_brana_sana.trim();
   if (score < 0 || score > 5) erreurs.push('pertinence_brana_sana doit être entre 0 et 5');
-  if (angle && score === 0) erreurs.push('angle_brana_sana renseigné avec un score de 0');
+  if (angle && score === 0) erreurs.push('angle_brana_sana renseigné avec un score de 0 : avec un score de 0, renvoie angle_brana_sana = "" (aucun texte, aucune explication) ; sinon donne un score de 1 à 5');
   if (!angle && score !== 0) erreurs.push('score non nul sans angle_brana_sana');
   return erreurs;
 }

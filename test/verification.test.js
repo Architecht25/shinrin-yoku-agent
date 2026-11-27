@@ -95,6 +95,12 @@ test('journal : fiche non éligible retirée de la une, chiffres et affirmations
   assert.match(md, /3 étude\(s\) analysée\(s\)/);
 });
 
+test('première phrase supprimée : le texte reprend le résultat de la fiche', async () => {
+  const client = clientSimule(reponseOutil({ non_soutenues: [{ id: 'une.0.texte.0', raison: 'absent' }] }));
+  const { journal } = await verifierJournal(client, brouillon, fiches, decrireFiches(fiches));
+  assert.equal(journal.a_la_une[0].texte, 'Marche de 30 minutes.');
+});
+
 test('contrôle du journal impossible : lève, pour retomber sur le rapport détaillé', async () => {
   await assert.rejects(verifierJournal(clientSimule(reponseOutil({})), brouillon, fiches, decrireFiches(fiches)));
 });

@@ -55,7 +55,11 @@ export function filtrerJournal(journal, segments, rejetes, fiches) {
       .map((a, n) => ({
         fiche_id: a.fiche_id,
         titre_journal: intact(`une.${n}.titre_journal`, a.titre_journal) || fiches[a.fiche_id].titre,
-        texte: intact(`une.${n}.texte`, a.texte),
+        // Sans sa première phrase, un article perd son sujet : on reprend alors le résultat
+        // de la fiche vérifiée plutôt que de publier une suite sans début.
+        texte: rejetes.has(`une.${n}.texte.0`)
+          ? fiches[a.fiche_id].resultat_principal
+          : intact(`une.${n}.texte`, a.texte),
         pour_la_borbolla: intact(`une.${n}.pour_la_borbolla`, a.pour_la_borbolla),
       }))
       .filter((a) => a.texte),
