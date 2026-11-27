@@ -76,12 +76,16 @@ narrative » et « indéterminé » ne vont à la une qu'avec un avertissement. 
 sont toujours lues sur la fiche. Le hub reçoit dans `metadata.etudes`, pour chaque étude
 retenue : type, niveau, confiance, pertinence, DOI, PMID.
 
+**Études animales** : exclues par la requête PubMed, puis d'après le titre et le résumé
+(`src/etudes-animales.js`) quand ils ne disent rien d'humains.
+
 **Rétractations** : exclues à la collecte ; chaque run revérifie les fiches des 12
 dernières semaines. Un avertissement est ajouté à la fiche, en tête du journal et du
 résumé envoyé au hub. Un article déjà livré au hub n'est pas modifié.
 
 Les anciennes fiches restent « non évalué » ; une fiche qui reparaît (rétractation) est
-évaluée une seule fois, sans reclassement de ses textes.
+évaluée une seule fois, sans reclassement de ses textes. Après un échec, l'évaluation est
+retentée aux runs suivants (3 tentatives au total).
 
 ## Types d'étude
 

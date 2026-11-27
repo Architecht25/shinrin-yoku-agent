@@ -47,6 +47,8 @@ Règles impératives :
 - Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
 - N'écris pas les étiquettes (type, niveau de preuve) : elles sont ajoutées automatiquement depuis les fiches.
 - Aucun verbe causal pour une étude observationnelle.
+- Recopie les chiffres exactement comme dans les fiches, sans les arrondir (jamais « plus de ... »), ou n'en mets pas. Dans la première phrase de chaque texte, n'en mets aucun.
+- Un titre ne dit jamais qu'une chose est « confirmée », « prouvée » ou « démontrée ».
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.
 - Pas de ton marketing. Ce texte sera relu avant tout usage éditorial.
 - Réponds uniquement en appelant l'outil "rediger_journal".`;

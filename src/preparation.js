@@ -19,7 +19,8 @@ import { buildHubPayload } from './hub.js';
 import { mettreEnFile } from './file-envois.js';
 import { fenetreCollecte } from './fenetre.js';
 import { estRetracte, verifierRetractations } from './retractations.js';
-import { evaluerFicheAncienne } from './evaluation-ancienne.js';
+import { evaluerFicheAncienne, aEvaluer } from './evaluation-ancienne.js';
+import { estEtudeAnimale } from './etudes-animales.js';
 
 export const MAX_TENTATIVES_EXTRACTION = 3;
 
@@ -95,9 +96,13 @@ export async function preparer({
   for (const theme of themes) {
     articles.push(...(await fetchThemeArticles(theme, jours, sources)));
   }
-  const publiables = articles.filter((a) => !estRetracte(a));
-  if (publiables.length < articles.length) {
-    console.log(`[veille] ${articles.length - publiables.length} publication(s) rétractée(s) ou avis de rétractation exclu(s).`);
+  const nonRetractes = articles.filter((a) => !estRetracte(a));
+  if (nonRetractes.length < articles.length) {
+    console.log(`[veille] ${articles.length - nonRetractes.length} publication(s) rétractée(s) ou avis de rétractation exclu(s).`);
+  }
+  const publiables = nonRetractes.filter((a) => !estEtudeAnimale(a));
+  for (const a of nonRetractes.filter(estEtudeAnimale)) {
+    console.log(`[veille] Étude animale exclue : ${a.title.slice(0, 100)}`);
   }
   const retractees = await verifierRetractations(store, runDate, sources.parPmids);
   const marquerCollecte = async () => {
@@ -109,11 +114,32 @@ export async function preparer({
   // Les extractions échouées sont traitées à part, avec un nombre de tentatives limité.
   const enEchec = new Set(store.fiches.filter((f) => f.statut === 'extraction échouée' && f.pmid).map((f) => f.pmid));
   const inedits = partitionNewArticles(store, publiables).filter((a) => !enEchec.has(a.pmid));
-  const aRetenter = (await articlesARetenter(store, sources)).filter((a) => !estRetracte(a));
+  const aRetenter = (await articlesARetenter(store, sources)).filter((a) => !estRetracte(a) && !estEtudeAnimale(a));
   console.log(`[veille] ${inedits.length} article(s) nouveau(x), ${aRetenter.length} à retenter.`);
 
   const aTraiter = [...inedits, ...aRetenter];
+  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là,
+  // une fois ; après un échec, la tentative est comptée et refaite aux runs suivants.
+  const preuves = [];
+  const enAttente = aEvaluer(store.fiches);
+  if (enAttente.length) {
+    const anciens = await sources.parPmids(enAttente.map((f) => f.pmid)).catch(() => null);
+    for (const ancienne of anciens ? enAttente : []) {
+      const resultat = await evaluerFicheAncienne(client, ancienne, anciens.find((a) => a.pmid === ancienne.pmid), runDate);
+      const fiche = resultat.preuve ? resultat.fiche : { ...ancienne, tentatives_evaluation: (ancienne.tentatives_evaluation || 0) + 1 };
+      if (resultat.preuve) preuves.push(resultat.preuve);
+      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
+      const i = retractees.indexOf(ancienne);
+      if (i !== -1) retractees[i] = fiche;
+    }
+  }
+
   if (aTraiter.length === 0 && retractees.length === 0) {
+    // Rien à envoyer, mais une évaluation reprise doit être conservée.
+    if (enAttente.length) {
+      await enregistrerPreuves(emplacements.preuves, preuves);
+      await saveStore(store, emplacements.db);
+    }
     await marquerCollecte();
     console.log('[veille] Rien de nouveau — pas de fiche à créer, pas d’email à envoyer.');
     return { nouvelles: 0 };
@@ -121,7 +147,6 @@ export async function preparer({
 
   const nouvellesFiches = [];
   const echecs = [];
-  const preuves = [];
 
   for (const brut of aTraiter) {
     const article = { ...brut, _runDate: runDate };
@@ -144,19 +169,6 @@ export async function preparer({
   // Des reprises seules qui échouent encore sont en revanche enregistrées, pour les compter.
   if (nouvellesFiches.length === 0 && inedits.length > 0) {
     throw new Error(`Toutes les extractions ont échoué (${echecs.length}) — rien n'est enregistré.`);
-  }
-
-  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là.
-  if (retractees.length) {
-    const articlesAnciens = await sources.parPmids(retractees.map((f) => f.pmid)).catch(() => []);
-    for (let i = 0; i < retractees.length; i += 1) {
-      const ancienne = retractees[i];
-      const { fiche, preuve } = await evaluerFicheAncienne(client, ancienne, articlesAnciens.find((a) => a.pmid === ancienne.pmid), runDate);
-      if (!preuve) continue;
-      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
-      retractees[i] = fiche;
-      preuves.push(preuve);
-    }
   }
 
   let envoi = null;

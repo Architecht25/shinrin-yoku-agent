@@ -7,7 +7,7 @@ console.error = () => {};
 const ancienne = { pmid: '111', type_etude: 'RCT', niveau_de_preuve: 'non évalué', resultat_principal: 'Texte d’origine réduit de 99 %.', niveau_de_preuve_et_limites: 'L.', mecanisme_evalue: 'm', angle_brana_sana: '', titre: 'T' };
 const article = articleFactice({ publicationTypes: ['Observational Study'] });
 const evaluation = reponseOutil({ type_etude: 'étude observationnelle', niveau_propose: 'indéterminé', extrait_justification: '', justification_niveau: '', effectif: 0, pertinence_centre: 0 });
-const avis = reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '' });
+const avis = reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', justification_niveau_corrigee: '' });
 
 test('évaluée une seule fois, avec les mêmes règles, sans reclasser ni réécrire', async () => {
   const client = clientSimule(evaluation, avis);
