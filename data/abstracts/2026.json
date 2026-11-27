@@ -1,4 +1,39 @@
 {
+  "43060184": {
+    "pmid": "43060184",
+    "doi": "10.64898/2026.11.12.26367978",
+    "titre_pubmed": "Sleep Irregularity and Risk of Incident Hypertension in the UK Biobank.",
+    "publication_types": [
+      "Journal Article",
+      "Preprint"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "modèle",
+      "niveau_de_preuve_et_limites": "vérification",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "modèle",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "vérification",
+      "prepublication": "code",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "vérification",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "679ae408d7f140ac614bc75bc5210fcd96ed1c5cf2de50331af6a115d6d5d9f5"
+  },
   "43073271": {
     "pmid": "43073271",
     "doi": "10.1038/s41398-026-04481-w",
@@ -531,5 +566,174 @@
       "ajoute_le": "code"
     },
     "resume_sha256": "ce0062804430c7b39faae766ba49f5feb83ce073f2ab2113740429359bbdd5be"
+  },
+  "43101137": {
+    "pmid": "43101137",
+    "doi": "10.1136/bmjnph-2025-001385",
+    "titre_pubmed": "Thin illusion: a cross-sectional study on normal weight obesity among adults in a subdivision of Northern Haryana.",
+    "publication_types": [
+      "Journal Article"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "modèle",
+      "niveau_de_preuve_et_limites": "modèle",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "modèle",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "vérification",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "vérification",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "d026ea7b3e5ec4abf93247632b22aea825f021d033f7298da0a5f6906d8297e5"
+  },
+  "43101264": {
+    "pmid": "43101264",
+    "doi": "10.3389/fpubh.2026.2002110",
+    "titre_pubmed": "Sleep quality, social jet lag, and cardiovascular risk factors in young adults.",
+    "publication_types": [
+      "Journal Article",
+      "Observational Study"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "vérification",
+      "niveau_de_preuve_et_limites": "modèle",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "code",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "code",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "code",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "32b67413de8991d168a483996fee9da1bcb2e39c8b6a3d73053b6b3d39a302e5"
+  },
+  "43101929": {
+    "pmid": "43101929",
+    "doi": null,
+    "titre_pubmed": "[The effect of forest bathing on the mental wellbeing of children and adolescents: a scoping review].",
+    "publication_types": [
+      "Journal Article",
+      "Scoping Review",
+      "English Abstract"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "modèle",
+      "niveau_de_preuve_et_limites": "modèle",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "code",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "code",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "code",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "a0ea89c303d1c51712fdfcacdfb4b6ad5081a0a767f0a0195973a3d95ccd6ec8"
+  },
+  "43101965": {
+    "pmid": "43101965",
+    "doi": "10.1080/13651501.2026.2768536",
+    "titre_pubmed": "Chronotypes in adult patients with bipolar disorder: unraveling the impact of ADHD comorbidity.",
+    "publication_types": [
+      "Journal Article"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "modèle",
+      "niveau_de_preuve_et_limites": "modèle",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "modèle",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "modèle",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "modèle",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "eb55ca730d4b07b999ba4432acd6c3f49cb8413d6cc6500c7ae3a1a55646c598"
+  },
+  "43102330": {
+    "pmid": "43102330",
+    "doi": "10.3791/71726",
+    "titre_pubmed": "Evaluating Emotional Perception and Human Comfort in Urban Green Spaces Through Tree Diversity: A GIS and Survey-Based Approach.",
+    "publication_types": [
+      "Journal Article",
+      "Video-Audio Media"
+    ],
+    "ajoute_le": "2026-11-27",
+    "sources_champs": {
+      "titre": "code",
+      "auteurs": "modèle",
+      "date": "code",
+      "mecanisme_evalue": "modèle",
+      "resultat_principal": "modèle",
+      "niveau_de_preuve_et_limites": "modèle",
+      "angle_brana_sana": "modèle",
+      "pertinence_centre": "modèle",
+      "type_etude": "modèle",
+      "doi": "code",
+      "lien": "code",
+      "source": "code",
+      "niveau_de_preuve": "modèle",
+      "pmid": "code",
+      "thematique_id": "code",
+      "thematique": "code",
+      "origine_recherche": "code",
+      "chercheur_reference": "code",
+      "ajoute_le": "code",
+      "justification_niveau": "modèle",
+      "effectif": "modèle"
+    },
+    "resume_sha256": "9bdf6fbff75f207efba83ef8eb205956fe0b6cc0213c22925a9d38468bdecca6"
   }
 }
