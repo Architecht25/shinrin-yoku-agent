@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { valeursSource, chiffresAbsents, retirerPhrasesNonSourcees } from '../src/chiffres.js';
 import { verifierFiche, MARQUE_A_CORRIGER } from '../src/verification.js';
-import { verifierJournal } from '../src/verification-journal.js';
+import { verifierJournal, titreTropAffirmatif } from '../src/verification-journal.js';
 import { decrireFiches, journalToMarkdown, retenirPourJournal, journalVide } from '../src/digest.js';
 import { ficheModele, reponseOutil, clientSimule } from './helpers.js';
 
@@ -126,4 +126,13 @@ test('seuil de pertinence : en dessous, ni à la une ni en bref ; le niveau de p
   assert.deepEqual(retenirPourJournal(liste, 3), [liste[1], liste[2]]);
   assert.equal(retenirPourJournal(liste, 0).length, 3);
   assert.equal(journalVide(3).a_la_une.length, 0);
+});
+
+test('titres : « confirmé », « prouvé », « démontré » refusés sauf négation claire', async () => {
+  for (const t of ['Chronotype et hygiène de sommeil : un lien confirmé chez les soignants', 'La sieste, des bienfaits prouvés', 'La nature démontre son effet']) assert.ok(titreTropAffirmatif(t), t);
+  for (const t of ['Sieste : pas de bénéfice démontré', 'Un effet non confirmé', 'Des pistes à confirmer', 'Rien de prouvé à ce stade', 'Marche en nature : des bénéfices suggérés']) assert.ok(!titreTropAffirmatif(t), t);
+  const j = { titre_une: 'Un lien confirmé', chapeau: 'C.', en_bref: [], a_la_une: [{ fiche_id: 0, titre_journal: 'Sommeil : un effet prouvé', texte: 'Texte.', pour_la_borbolla: '' }] };
+  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), j, fiches, decrireFiches(fiches));
+  assert.equal(journal.titre_une, 'Veille La Borbolla : les études de la semaine');
+  assert.equal(journal.a_la_une[0].titre_journal, fiches[0].titre);
 });

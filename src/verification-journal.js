@@ -31,6 +31,15 @@ const SYSTEM_PROMPT = `Tu contrôles un journal de veille contre les fiches dont
 
 const CHAMPS_UNE = ['titre_journal', 'texte', 'pour_la_borbolla'];
 
+const CERTITUDE = /(?<![\p{L}])(?:confirm|prouv|démontr)(?:é|ée|és|ées|e|ent)(?![\p{L}])/iu;
+const NEGATION = /(?<![\p{L}])(?:pas|non|aucune?|aucunement|jamais|sans|peu|ni|rien)(?![\p{L}])/iu;
+
+/** Un titre ne présente rien comme confirmé, prouvé ou démontré, sauf pour le nier. */
+export function titreTropAffirmatif(titre) {
+  const m = String(titre || '').match(CERTITUDE);
+  return Boolean(m) && !NEGATION.test(titre.slice(0, m.index));
+}
+
 export function segmenter(journal) {
   const segments = [];
   const ajouter = (id, texte, ficheId) =>
@@ -99,6 +108,13 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
   const comptes = [fiches.length, candidat.a_la_une.length, candidat.a_la_une.length + candidat.en_bref.length];
   const globales = new Set([...parFiche.flatMap((v) => [...v]), ...comptes.map(String)]);
   const rejetes = new Map();
+  // Un titre est jugé en entier, puis retiré en entier.
+  for (const champ of new Set(segments.filter((s) => /titre/.test(s.champ)).map((s) => s.champ))) {
+    const parties = segments.filter((s) => s.champ === champ);
+    if (titreTropAffirmatif(parties.map((s) => s.phrase).join(' '))) {
+      parties.forEach((s) => rejetes.set(s.id, 'titre trop affirmatif'));
+    }
+  }
   for (const s of segments) {
     const absents = chiffresAbsents(s.phrase, s.fiche_id === null ? globales : parFiche[s.fiche_id]);
     if (absents.length) rejetes.set(s.id, `chiffre absent des fiches : ${absents.join(', ')}`);
