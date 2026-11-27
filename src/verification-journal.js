@@ -31,10 +31,12 @@ const SYSTEM_PROMPT = `Tu contrôles un journal de veille contre les fiches dont
 
 const CHAMPS_UNE = ['titre_journal', 'texte', 'pour_la_borbolla'];
 
-const CERTITUDE = /(?<![\p{L}])(?:confirm|prouv|démontr)(?:é|ée|és|ées|e|ent)(?![\p{L}])/iu;
+// L'infinitif seul reste permis (« à confirmer »), pas « vient confirmer ».
+const CERTITUDE =
+  /(?<![\p{L}])(?:(?:confirm|prouv|démontr)(?:é|ée|és|ées|e|ent|ant)|(?:vient|viennent) (?:confirmer|prouver|démontrer))(?![\p{L}])/iu;
 const NEGATION = /(?<![\p{L}])(?:pas|non|aucune?|aucunement|jamais|sans|peu|ni|rien)(?![\p{L}])/iu;
 
-/** Un titre ne présente rien comme confirmé, prouvé ou démontré, sauf pour le nier. */
+/** Un titre ou une phrase d'introduction ne présente rien comme confirmé, prouvé ou démontré, sauf pour le nier. */
 export function titreTropAffirmatif(titre) {
   const m = String(titre || '').match(CERTITUDE);
   return Boolean(m) && !NEGATION.test(titre.slice(0, m.index));
@@ -105,7 +107,8 @@ export function filtrerJournal(journal, segments, rejetes, fiches) {
 
   return {
     titre_une: intact('titre_une', journal.titre_une) || 'Veille La Borbolla : les études de la semaine',
-    chapeau: intact('chapeau', journal.chapeau) || `${fiches.length} étude(s) retenue(s) cette semaine.`,
+    chapeau:
+      (!decapite('chapeau') && intact('chapeau', journal.chapeau)) || `${fiches.length} étude(s) retenue(s) cette semaine.`,
     a_la_une: aLaUne.filter((a) => a.texte),
     en_bref: [...rabattues, ...enBref].filter((b) => b.phrase),
   };
@@ -140,6 +143,9 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
     if (titreTropAffirmatif(parties.map((s) => s.phrase).join(' '))) {
       parties.forEach((s) => rejetes.set(s.id, 'titre trop affirmatif'));
     }
+  }
+  for (const s of segments) {
+    if (s.champ === 'chapeau' && titreTropAffirmatif(s.phrase)) rejetes.set(s.id, 'introduction trop affirmative');
   }
   for (const s of segments) {
     const absents = chiffresAbsents(s.phrase, s.fiche_id === null ? globales : parFiche[s.fiche_id]);
