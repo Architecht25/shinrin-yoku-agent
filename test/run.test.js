@@ -30,7 +30,7 @@ const client = ({ extraction = pertinente } = {}) => ({
       const outil = r.tool_choice.name;
       if (outil === 'enregistrer_fiche') return extraction(r);
       if (outil === 'enregistrer_verification') {
-        return reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '' });
+        return reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', justification_niveau_corrigee: '' });
       }
       if (outil === 'rediger_journal') return reponseOutil({ titre_une: 'T', chapeau: 'C.', a_la_une: [], en_bref: [{ fiche_id: 0, phrase: 'P.' }] });
       return reponseOutil({ non_soutenues: [] });
@@ -223,5 +223,30 @@ describe('seuil de pertinence', () => {
     assert.doesNotMatch(envoi.email.markdown, /À la une|En bref/);
     assert.match(envoi.email.piece_jointe, /A simulated study/);
     assert.match(envoi.email.sujet, /Le journal de la semaine/);
+  });
+});
+
+describe('évaluation d’une fiche ancienne après un échec', () => {
+  test('tentative comptée, reprise au run suivant sans nouveauté, puis plus jamais refaite', async () => {
+    await mkdir(path.dirname(emplacements.db), { recursive: true });
+    await writeFile(emplacements.db, JSON.stringify({ fiches: [{ pmid: '9', titre: 'Ancienne', ajoute_le: '2026-11-20', thematique_id: 'sommeil', niveau_de_preuve: 'non évalué' }] }));
+    const s = { parMotsCles: async () => [], parAuteurs: async () => [], parPmids: async (ids) => ids.map((pmid) => articleFactice({ pmid, retracte: true, publicationTypes: ['Observational Study'] })) };
+    let panne = true;
+    let evaluations = 0;
+    const c = { messages: { async create(r) {
+      if (r.tool_choice.name === 'evaluer_niveau') {
+        evaluations += 1;
+        if (panne) throw new Error('529');
+        return reponseOutil({ type_etude: 'étude observationnelle', niveau_propose: 'indéterminé', extrait_justification: '', justification_niveau: '', effectif: 0, pertinence_centre: 0 });
+      }
+      return client().messages.create(r);
+    } } };
+    await lancer({ sources: s, client: c });
+    assert.equal((await lire(emplacements.db)).fiches[0].tentatives_evaluation, 1);
+    panne = false;
+    await lancer({ sources: s, client: c });
+    assert.equal((await lire(emplacements.db)).fiches[0].niveau_de_preuve, 'observationnelle');
+    await lancer({ sources: s, client: c });
+    assert.equal(evaluations, 2);
   });
 });

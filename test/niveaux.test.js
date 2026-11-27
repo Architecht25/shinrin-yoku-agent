@@ -57,7 +57,7 @@ test('verbes causaux repérés ; associations, négations, buts et adjectifs adm
 async function chaine(modele, article, avis = {}) {
   const brute = await extractFiche(clientSimule(reponseOutil(ficheModele(modele))), article);
   const { fiche, preuve } = separerPreuve(brute, article);
-  const verdict = avis instanceof Error ? avis : reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', ...avis });
+  const verdict = avis instanceof Error ? avis : reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', justification_niveau_corrigee: '', ...avis });
   return verifierFiche(clientSimule(verdict), fiche, preuve);
 }
 const article = articleFactice({ abstract: resume });
@@ -72,7 +72,8 @@ test('quatre notions sur la fiche ; l’extrait du résumé n’est pas conserv�
 });
 
 test('le relecteur corrige le niveau proposé ; sans vérification, il redevient « indéterminé »', async () => {
-  const corrige = await chaine(proposition(), article, { verdict: 'à corriger', raison: 'devis', niveau_corrige: NIVEAUX.OPINION });
+  const corrige = await chaine(proposition(), article, { verdict: 'à corriger', raison: 'devis', niveau_corrige: NIVEAUX.OPINION, justification_niveau_corrigee: 'Le texte présente un avis, sans méthode.' });
+  assert.equal(corrige.fiche.justification_niveau, 'Le texte présente un avis, sans méthode.');
   assert.equal(corrige.fiche.niveau_de_preuve, NIVEAUX.OPINION);
   assert.equal(corrige.fiche.confiance_extraction, 'à confirmer');
   const panne = await chaine({ type_etude: 'étude observationnelle', ...proposition() }, article, new Error('panne'));
@@ -80,8 +81,9 @@ test('le relecteur corrige le niveau proposé ; sans vérification, il redevient
 });
 
 test('le code prime sur le relecteur', async () => {
-  const { fiche } = await chaine(proposition(), articleFactice({ abstract: resume, publicationTypes: ['Randomized Controlled Trial'] }), { verdict: 'à corriger', raison: 'x', niveau_corrige: NIVEAUX.OBSERVATIONNELLE, resultat_principal_corrige: 'Écart observé.' });
+  const { fiche } = await chaine(proposition(), articleFactice({ abstract: resume, publicationTypes: ['Randomized Controlled Trial'] }), { verdict: 'à corriger', raison: 'x', niveau_corrige: NIVEAUX.OBSERVATIONNELLE, justification_niveau_corrigee: 'Autre.', resultat_principal_corrige: 'Écart observé.' });
   assert.equal(fiche.niveau_de_preuve, NIVEAUX.CONTROLE);
+  assert.match(fiche.justification_niveau, /^Publication Type PubMed/);
 });
 
 test('étude observationnelle : aucun verbe causal, ni dans le résultat ni dans l’angle', async () => {

@@ -19,7 +19,7 @@ import { buildHubPayload } from './hub.js';
 import { mettreEnFile } from './file-envois.js';
 import { fenetreCollecte } from './fenetre.js';
 import { estRetracte, verifierRetractations } from './retractations.js';
-import { evaluerFicheAncienne } from './evaluation-ancienne.js';
+import { evaluerFicheAncienne, aEvaluer } from './evaluation-ancienne.js';
 import { estEtudeAnimale } from './etudes-animales.js';
 
 export const MAX_TENTATIVES_EXTRACTION = 3;
@@ -118,7 +118,28 @@ export async function preparer({
   console.log(`[veille] ${inedits.length} article(s) nouveau(x), ${aRetenter.length} à retenter.`);
 
   const aTraiter = [...inedits, ...aRetenter];
+  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là,
+  // une fois ; après un échec, la tentative est comptée et refaite aux runs suivants.
+  const preuves = [];
+  const enAttente = aEvaluer(store.fiches);
+  if (enAttente.length) {
+    const anciens = await sources.parPmids(enAttente.map((f) => f.pmid)).catch(() => null);
+    for (const ancienne of anciens ? enAttente : []) {
+      const resultat = await evaluerFicheAncienne(client, ancienne, anciens.find((a) => a.pmid === ancienne.pmid), runDate);
+      const fiche = resultat.preuve ? resultat.fiche : { ...ancienne, tentatives_evaluation: (ancienne.tentatives_evaluation || 0) + 1 };
+      if (resultat.preuve) preuves.push(resultat.preuve);
+      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
+      const i = retractees.indexOf(ancienne);
+      if (i !== -1) retractees[i] = fiche;
+    }
+  }
+
   if (aTraiter.length === 0 && retractees.length === 0) {
+    // Rien à envoyer, mais une évaluation reprise doit être conservée.
+    if (enAttente.length) {
+      await enregistrerPreuves(emplacements.preuves, preuves);
+      await saveStore(store, emplacements.db);
+    }
     await marquerCollecte();
     console.log('[veille] Rien de nouveau — pas de fiche à créer, pas d’email à envoyer.');
     return { nouvelles: 0 };
@@ -126,7 +147,6 @@ export async function preparer({
 
   const nouvellesFiches = [];
   const echecs = [];
-  const preuves = [];
 
   for (const brut of aTraiter) {
     const article = { ...brut, _runDate: runDate };
@@ -149,19 +169,6 @@ export async function preparer({
   // Des reprises seules qui échouent encore sont en revanche enregistrées, pour les compter.
   if (nouvellesFiches.length === 0 && inedits.length > 0) {
     throw new Error(`Toutes les extractions ont échoué (${echecs.length}) — rien n'est enregistré.`);
-  }
-
-  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là.
-  if (retractees.length) {
-    const articlesAnciens = await sources.parPmids(retractees.map((f) => f.pmid)).catch(() => []);
-    for (let i = 0; i < retractees.length; i += 1) {
-      const ancienne = retractees[i];
-      const { fiche, preuve } = await evaluerFicheAncienne(client, ancienne, articlesAnciens.find((a) => a.pmid === ancienne.pmid), runDate);
-      if (!preuve) continue;
-      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
-      retractees[i] = fiche;
-      preuves.push(preuve);
-    }
   }
 
   let envoi = null;

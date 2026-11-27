@@ -32,7 +32,7 @@ test('seule la phrase au chiffre non sourcé est retirée', () => {
 const preuve = { titre_pubmed: 'Walking study', resume, publication_types: ['Randomized Controlled Trial'], sources_champs: {} };
 const fiche = (o = {}) => ({ ...ficheModele({ type_etude: 'essai contrôlé randomisé', ...o }) });
 const avis = (o = {}) =>
-  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', ...o });
+  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', justification_niveau_corrigee: '', ...o });
 
 test('fiche confirmée : éligible à la une', async () => {
   const { fiche: f } = await verifierFiche(clientSimule(avis()), fiche(), preuve);

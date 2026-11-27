@@ -84,7 +84,8 @@ dernières semaines. Un avertissement est ajouté à la fiche, en tête du journ
 résumé envoyé au hub. Un article déjà livré au hub n'est pas modifié.
 
 Les anciennes fiches restent « non évalué » ; une fiche qui reparaît (rétractation) est
-évaluée une seule fois, sans reclassement de ses textes.
+évaluée une seule fois, sans reclassement de ses textes. Après un échec, l'évaluation est
+retentée aux runs suivants (3 tentatives au total).
 
 ## Types d'étude
 

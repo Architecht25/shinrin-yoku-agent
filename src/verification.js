@@ -28,8 +28,9 @@ export const VERIFICATION_TOOL = {
       resultat_principal_corrige: { type: 'string', description: 'Résultat réécrit fidèlement au résumé, en français. Chaîne vide si rien à changer.' },
       limites_corrigees: { type: 'string', description: 'Limites réécrites fidèlement au résumé, en français. Chaîne vide si rien à changer.' },
       niveau_corrige: { type: 'string', enum: ['', ...LISTE_NIVEAUX], description: 'Chaîne vide si le niveau de preuve et sa justification sont corrects.' },
+      justification_niveau_corrigee: { type: 'string', description: 'Si le niveau ou sa justification est à corriger : la justification en UNE phrase en français tirée du résumé (reformulée, sans citation). Sinon chaîne vide.' },
     },
-    required: ['verdict', 'raison', 'type_etude_corrige', 'resultat_principal_corrige', 'limites_corrigees', 'niveau_corrige'],
+    required: ['verdict', 'raison', 'type_etude_corrige', 'resultat_principal_corrige', 'limites_corrigees', 'niveau_corrige', 'justification_niveau_corrigee'],
   },
 };
 
@@ -46,6 +47,7 @@ La raison donne uniquement ta conclusion, en 2 phrases au plus, sans raisonnemen
 export function validerVerification(v) {
   const erreurs = validerSchema(v, VERIFICATION_TOOL.input_schema);
   if (!erreurs.length && v.verdict === A_CORRIGER && !v.raison.trim()) erreurs.push('raison vide pour « à corriger »');
+  if (!erreurs.length && v.niveau_corrige && !v.justification_niveau_corrigee.trim()) erreurs.push('niveau corrigé sans justification');
   return erreurs;
 }
 
@@ -89,6 +91,7 @@ export async function verifierFiche(client, fiche, preuve) {
   let raison = '';
   let corrigee = false;
   let niveauCorrige = '';
+  let justificationCorrigee = '';
 
   try {
     const v = await appelerOutil(client, {
@@ -103,6 +106,7 @@ export async function verifierFiche(client, fiche, preuve) {
     if (statut === A_CORRIGER) {
       raison = v.raison.trim();
       niveauCorrige = v.niveau_corrige;
+      justificationCorrigee = v.justification_niveau_corrigee.trim();
       const { permis } = contrainteType(preuve.publication_types);
       const corrections = {
         // Le code prime : un type interdit par PubMed est refusé.
@@ -146,7 +150,11 @@ export async function verifierFiche(client, fiche, preuve) {
   };
   const { permis: niveauxPermis } = niveauParPubmed(preuve.publication_types);
   if (niveauCorrige && niveauCorrige !== f.niveau_de_preuve && (!niveauxPermis || niveauxPermis.includes(niveauCorrige))) {
-    changerNiveau(niveauCorrige, 'Niveau corrigé par la vérification indépendante.', 'vérification');
+    changerNiveau(niveauCorrige, justificationCorrigee || 'Niveau corrigé par la vérification indépendante.', 'vérification');
+    corrigee = true;
+  } else if (justificationCorrigee && (!niveauCorrige || niveauCorrige === f.niveau_de_preuve) && origines.niveau_de_preuve !== 'code') {
+    // Même niveau, justification refaite. Une justification venant de PubMed reste telle quelle.
+    changerNiveau(f.niveau_de_preuve, justificationCorrigee, 'vérification');
     corrigee = true;
   } else if (statut === NON_VERIFIE && origines.niveau_de_preuve === 'modèle') {
     changerNiveau(NIVEAUX.INDETERMINE, 'Proposition du modèle non confirmée (vérification impossible).', 'code');
