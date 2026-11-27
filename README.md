@@ -1,133 +1,125 @@
 # Shinrin-yoku Agent
 
 Agent de veille scientifique pour La Borbolla / Braña Sana (centre bien-être en
-Asturies), couvrant les six piliers du projet :
+Asturies), sur quatre thématiques (`src/themes.js`) :
 
-1. Bain de forêt / shinrin-yoku
-2. Repos / sommeil
-3. Retour au manuel (travail manuel, artisanat)
-4. Mindfulness & performance mentale
-5. Nutrition & science de la longévité
-6. Santé préventive & médecine personnalisée
+| Thématique | Chercheurs de référence |
+|---|---|
+| Bain de forêt / shinrin-yoku | Qing Li, Yoshifumi Miyazaki |
+| Repos / sommeil | Matthew Walker, Steven Laureys |
+| Sieste & marche | aucun |
+| Retour au manuel (mains, artisanat, potager) | aucun |
 
-Ne produit **pas** de contenu marketing — uniquement des fiches d'étude structurées,
-factuelles et exportables, à relire manuellement avant tout usage éditorial.
+Les thématiques mindfulness, nutrition/longévité et santé préventive ont été retirées
+en novembre 2026. Leurs fiches restent dans `data/db.json` (« archivée » dans les exports).
 
-## Fonctionnement
+Ne produit **pas** de contenu marketing : des fiches d'étude et un journal, à relire
+avant tout usage éditorial.
 
-1. Pour chaque thématique (définie dans `src/themes.js`), interroge PubMed
-   (E-utilities, API officielle) sur les mots-clés de la thématique, triés par date,
-   jusqu'à `PUBMED_MAX_RESULTS` résultats (20 par défaut).
-1bis. Interroge en plus, en priorité, les publications des chercheurs de référence de
-   chaque thématique (combinées aux mêmes mots-clés thématiques pour désambiguïser les
-   homonymes) :
-   - Bain de forêt : Qing Li (Nippon Medical School), Yoshifumi Miyazaki (Chiba
-     University)
-   - Repos / sommeil : Matthew Walker (UC Berkeley), Steven Laureys (Université de
-     Liège)
-   - Retour au manuel : aucun chercheur de référence identifié à ce stade — filtre par
-     mots-clés uniquement
-   - Mindfulness & performance mentale : Jon Kabat-Zinn (UMass), Amishi Jha
-     (Université de Miami)
-   - Nutrition & longévité : Valter Longo (USC), David Sinclair (Harvard)
-   - Santé préventive & médecine personnalisée : Eric Topol (Scripps Research)
+## Calendrier
 
-   Ces fiches sont marquées `origine_recherche: "reference"` pour les distinguer des
-   résultats de la recherche générique par mots-clés (`origine_recherche: "mot-clé"`).
-2. Déduplique par rapport à la base déjà connue (clé : DOI, ou titre normalisé si pas
-   de DOI) — tous les lots (4 thématiques × mots-clés + auteurs) sont dédupliqués
-   ensemble, en une seule passe, avant extraction.
-3. Pour chaque article réellement nouveau, extrait une fiche structurée via Claude
-   (Sonnet) : titre, auteurs, date, DOI/lien, thématique, type d'étude, mécanisme
-   évalué, résultat principal, niveau de preuve/limites, angle d'application possible
-   pour Braña Sana (uniquement si pertinent — jamais forcé). La thématique elle-même
-   n'est pas devinée par Claude : elle est connue avec certitude dès la récupération
-   (on sait pour quelle thématique l'article a été recherché) et simplement attachée à
-   la fiche.
-4. Enregistre les nouvelles fiches dans `data/db.json` (base unique, toutes
-   thématiques confondues, avec le champ `thematique_id` pour le tri/filtre).
-5. Écrit un Markdown du run dans `veille-la-borbolla/AAAA-MM-JJ.md`, organisé par
-   section thématique.
-6. Envoie ce Markdown par email (HTML + pièce jointe `.md`) aux adresses
-   `RECIPIENT_EMAIL_1` / `RECIPIENT_EMAIL_2`, toutes thématiques confondues dans un
-   seul email. **Aucun email n'est envoyé s'il n'y a aucune étude nouvelle, toutes
-   thématiques confondues** — pas de bruit.
+GitHub Actions, chaque **vendredi à 18h05 UTC** (relecture le samedi dans le hub), ou à
+la main (`workflow_dispatch`).
 
-## Envoi au hub d'agents (optionnel)
+## Déroulé d'un run
 
-En plus de l'email, chaque run peut déposer le journal sur le hub d'agents
-(`POST {HUB_URL}/api/v1/deliveries`, JSON, `Authorization: Bearer {HUB_TOKEN}`) :
-un article « Veille bien-être, semaine NN » (`external_id` = année-semaine ISO, ex.
-`2026-W48`, donc un renvoi de la même semaine est un doublon que le hub accepte avec
-un 200). Le `body` est le même contenu que l'email.
+1. **Collecte** : tous les articles entrés dans PubMed depuis la dernière collecte
+   réussie (3 jours de marge, 10 jours au minimum, 90 au maximum), page par page. Au-delà
+   de 500 résultats pour une recherche, le run échoue plutôt que de tronquer. PubMed est
+   la seule source ; seuls le titre et le résumé sont lus.
+2. **Déduplication** sur toute la base : PMID et DOI normalisé (titre à défaut de DOI).
+3. **Fiche** par article (Claude, réponse structurée). La réponse est validée (champs,
+   liste des types, limites non vides, angle et score cohérents). Réponse invalide ou
+   tronquée : une nouvelle tentative, puis fiche « extraction échouée », retentée aux
+   runs suivants (3 tentatives au total). Si toutes les extractions de nouveaux articles
+   échouent, le run se termine en erreur et rien n'est enregistré.
+4. **Vérification** : un second appel compare la fiche au résumé (type, chiffres,
+   limites, causalité). Le code retire en plus toute phrase portant un chiffre absent du
+   titre et du résumé (arrondis et conversions compris).
 
-| Variable | Rôle |
-|----------|------|
-| `HUB_ENABLED` | Envoi actif seulement si `true` |
-| `HUB_URL` | URL de base du hub |
-| `HUB_TOKEN` | Jeton Bearer |
+   | Résultat | Dans le journal |
+   |---|---|
+   | confirmé | à la une ou en bref |
+   | à corriger, avec correction | en bref seulement |
+   | à corriger, sans correction | absente (reste dans les fiches, signalée) |
+   | non vérifié (panne du second appel) | en bref seulement |
 
-Si le hub est injoignable ou répond une erreur, l'erreur est journalisée et le run
-continue : ni l'email ni la veille n'échouent à cause du hub.
+   La vérification utilise le même modèle dans un contexte séparé : elle réduit les
+   erreurs, elle ne remplace pas la relecture.
+5. **Journal**, puis contrôle contre les fiches : les phrases non soutenues sont
+   supprimées. Si la rédaction ou ce contrôle échoue, le rapport détaillé part à la place.
+6. **Enregistrement** de la base, des preuves et de la file des envois.
+7. **Envoi** : tous les e-mails d'abord, puis le hub.
 
-## Installation
+## Types d'étude
+
+revue systématique, méta-analyse, revue de portée, revue narrative, essai contrôlé
+randomisé, étude observationnelle, étude pilote, étude qualitative, article théorique ou
+perspective, indéterminé.
+
+Un type PubMed explicite (`Publication Types`) est appliqué par le code. Avec « Review »
+seul, le modèle précise parmi les revues. Voir `src/types-etude.js`.
+
+Les fiches antérieures gardent leurs anciens types, non reclassés. Toutes les fiches
+portent `niveau_de_preuve: "non évalué"` : l'étiquetage reste à faire.
+
+## Données
+
+| Fichier | Contenu |
+|---|---|
+| `data/db.json` | les fiches, avec le résultat de leur vérification |
+| `data/abstracts/<année>.json` | par PMID : résumé, Publication Types, DOI, et origine de chaque champ (code, modèle, vérification) |
+| `data/file-envois.json` | envois en attente ou abandonnés, sans adresses ni secrets |
+| `data/etat.json` | date de la dernière collecte |
+| `veille-la-borbolla/` | journaux, fiches et tableau de bord du dernier run |
+
+## Envois et reprises
+
+En CI, la base est commitée et poussée **avant** tout envoi. Si le push échoue, rien ne
+part. Un envoi en échec est essayé 3 fois dans le run, puis repris au run suivant
+(abandon après 5 runs pour l'e-mail, 8 pour le hub ; l'entrée reste dans la file). Un
+échec d'e-mail met le run en erreur ; une panne du hub non, et elle ne bloque pas
+l'e-mail. Un envoi réussi peut être répété si le second commit (état des envois) échoue.
+
+Le hub (`POST {HUB_URL}/api/v1/deliveries`, `Authorization: Bearer {HUB_TOKEN}`) reçoit
+l'article avec `external_id` = semaine ISO (ex. `2026-W48`). **Un second envoi la même
+semaine est un doublon : le hub répond 200 sans mettre l'article à jour.**
+
+Côté hub, l'agent doit exister avec `review_required: true` pour que ses articles
+arrivent en brouillon.
+
+## Installation et commandes
 
 ```bash
 npm install
-cp .env.example .env
-# renseigner ANTHROPIC_API_KEY, les identifiants SMTP et les destinataires
+cp .env.example .env    # clé Anthropic, SMTP, destinataires, hub
+npm test                # tests (node:test), sans réseau
+npm run veille:essai    # essai à blanc vers tmp/replay/, aucun envoi
+npm run veille          # vrai run : préparation puis envoi
+npm run export          # toute la base en Markdown
+npm run dashboard       # tableau de bord de toute la base
 ```
 
-## Utilisation
+`npm run veille:essai` interroge réellement PubMed et Claude (appels facturés), travaille
+sur une copie de la base et écrit les e-mails (`.eml`) et les livraisons du hub (`.json`)
+dans `tmp/replay/envois/`. `VEILLE_THEMES=manuel` limite les thématiques.
 
-```bash
-npm run veille     # lance un run de veille complet (4 thématiques)
-npm run export     # exporte toute la base de connaissances en Markdown lisible
-```
+**Attention** : `npm run veille` traite toute la file `data/file-envois.json`, y compris
+les envois en attente récupérés de la CI. Un run local ne pousse rien sur GitHub.
 
-## Rigueur scientifique
+Variables : voir `.env.example`. En CI, les tests s'exécutent avant la collecte et
+l'envoi.
 
-- Claude reçoit une consigne stricte : ne jamais surinterpréter, toujours distinguer
-  association et preuve d'effet, signaler les limites mentionnées par les auteurs
-  (taille d'échantillon, absence de contrôle, hétérogénéité méthodologique...), et
-  indiquer explicitement quand rien n'est précisé plutôt que d'inventer.
-- Le champ "angle Braña Sana" reste vide quand aucun lien concret et honnête ne se
-  justifie.
+## Dépôt
 
-## Sources
-
-- ✅ PubMed / PMC — implémenté (E-utilities officielle, sans clé requise mais
-  `PUBMED_API_KEY` recommandé pour un quota plus élevé).
-- À ajouter dans une itération suivante, sur le même modèle de module dans
-  `src/sources/` : ClinicalTrials.gov (API officielle), Frontiers, MDPI. Google
-  Scholar n'a pas d'API officielle — à traiter en fallback manuel seulement, jamais
-  en scraping automatisé agressif.
+`Architecht25/shinrin-yoku-agent` est **public**, comme le tableau de bord GitHub Pages.
+Tout ce qui est commité est visible : base, résumés PubMed (qui peuvent être protégés par
+le droit d'auteur des éditeurs), journaux, angles pour le centre, adresses des
+destinataires dans le workflow, journaux d'exécution.
 
 ## Ajouter ou ajuster une thématique
 
-Toute la configuration d'une thématique (id, libellé, requête PubMed, chercheurs de
-référence) vit dans `src/themes.js`. Le pipeline de récupération/extraction
-(`src/sources/pubmed.js`, `src/extract.js`, `src/index.js`) est générique et
-paramétré par thématique — ajouter une thématique ne demande pas de dupliquer de
-code, juste une nouvelle entrée dans `THEMES`.
-
-## Architecture
-
-```
-src/
-  config.js       variables d'environnement
-  themes.js        définition des 4 thématiques (requêtes PubMed + chercheurs de référence)
-  sources/pubmed.js   client PubMed E-utilities (esearch + efetch), générique par thématique
-  extract.js      extraction structurée via Claude (tool use), thématique attachée déterministe
-  store.js        stockage JSON + déduplication (DOI ou titre), tous thèmes confondus
-  markdown.js      génération des fiches Markdown, organisées par section thématique
-  email.js         envoi du rapport par email (nodemailer)
-  index.js         orchestration du run de veille (boucle sur les thématiques)
-  export.js        export Markdown de toute la base
-data/db.json       base de connaissances (source de vérité, toutes thématiques)
-veille-la-borbolla/   sorties Markdown consultables, organisées par section thématique
-veille-shinrin-yoku/  sorties Markdown historiques (avant l'extension multi-thématiques)
-```
-
-Inspiré de l'architecture de l'Agent Veille de ren0vate (scraping → analyse Claude →
-stockage → email), sans dépendance directe à ce projet.
+Une entrée dans `src/themes.js` (id, libellé, requête, chercheurs). Mettre à jour la
+description des thématiques dans les consignes (`src/extract.js`, `src/digest.js`) et
+`test/themes.test.js`. Toute nouvelle source suit le modèle d'un module isolé dans
+`src/sources/` ; pas de scraping de sites sans API officielle.

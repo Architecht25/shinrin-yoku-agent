@@ -1,217 +1,65 @@
 # CLAUDE.md — shinrin-yoku-agent
 
-Fichier de contexte pour Claude Code. Lire avant toute session.
+Contexte pour Claude Code. Le déroulé d'un run, les règles de vérification, les données
+et les commandes sont décrits dans [README.md](README.md) : le lire avant toute session.
 
-## Domaine métier
+## Domaine
 
-Agent Node.js de **veille scientifique automatisée** pour **Braña Sana / La Borbolla**,
-un centre bien-être en Asturies (Espagne). Le lien exact avec un autre projet/app nommé
-"borbolla" n'a pas été retrouvé dans le code (aucune dépendance ni référence croisée) —
-le nom du dossier de sortie `veille-la-borbolla/` suggère un lien avec ce lieu/projet,
-sans confirmation directe dans ce repo.
+Veille scientifique pour **Braña Sana / La Borbolla** (centre bien-être en Asturies) :
+repos, soins naturels et retour au manuel. Quatre thématiques : bain de forêt,
+repos/sommeil, sieste & marche, retour au manuel.
 
-Chaque lundi (ou à la demande), l'agent :
-- interroge PubMed sur 4 thématiques (périmètre « repos, soins naturels et retour au manuel » : bain de forêt
-  et soins naturels, sommeil, sieste & marche, retour au manuel — usage des mains :
-  artisanat, potager, bricolage, pour occuper l'esprit et développer des compétences),
-  définies dans `src/themes.js` — mots-clés + chercheurs de référence par thématique.
-  (mindfulness, nutrition/longévité et santé préventive ont été retirées
-  en nov. 2026 ; leurs fiches restent dans `data/db.json` et apparaissent comme sections
-  « archivée » dans les exports)
-- déduplique les articles trouvés contre l'historique (`data/db.json`)
-- pour chaque article réellement nouveau, demande à Claude d'en extraire une **fiche
-  structurée factuelle** (titre, auteurs, type d'étude, mécanisme évalué, résultat
-  principal, niveau de preuve et limites, angle d'application pour Braña Sana —
-  laissé vide si aucun lien honnête ne se justifie)
-- écrit un Markdown du run (`veille-la-borbolla/AAAA-MM-JJ.md`) et envoie ce rapport
-  par email aux destinataires configurés
+Sortie relue à la main avant tout usage éditorial ; ce n'est pas un générateur de
+contenu marketing.
 
-Consigne de fond (portée par le system prompt Claude, `src/extract.js`) : ne jamais
-surinterpréter un résultat, toujours distinguer association statistique et preuve
-d'effet causal, signaler les limites méthodologiques mentionnées par les auteurs (ou
-indiquer explicitement leur absence plutôt que d'en inventer). Sortie destinée à être
-relue manuellement avant tout usage éditorial — ce n'est pas un générateur de contenu
-marketing.
+## Essentiel
 
-## Stack technique
+- Node >= 20 (CI : 22), ESM, sans TypeScript ni linter. IA : `@anthropic-ai/sdk`, modèle
+  `claude-sonnet-5` (constante `MODEL` dans `src/extract.js`). E-mail : Nodemailer (SMTP
+  Resend). Persistance : fichiers JSON versionnés dans `data/`.
+- Tests : `npm test` (`node:test`, sans réseau). Lancés par `ci.yml` et par le workflow
+  de veille avant tout envoi.
+- Essai : `npm run veille:essai` (écrit dans `tmp/replay/`, aucun envoi, appels Claude
+  réels). Ne pas utiliser `npm run veille` pour essayer.
+- Production : `.github/workflows/veille-shinrin-yoku.yml`, **vendredi 18h05 UTC**. Le bot
+  commite sur `master` : faire `git pull` avant de travailler.
+- Dépôt **public** (`Architecht25/shinrin-yoku-agent`), tableau de bord publié sur GitHub
+  Pages.
 
-| Composant | Version |
-|-----------|---------|
-| Node.js | >= 20 (CI : Node 22 via `actions/setup-node@v4`) |
-| Modules | ESM natif (`"type": "module"`), pas de TypeScript |
-| IA | `@anthropic-ai/sdk` ^0.32.1 (SDK OFFICIEL Anthropic), modèle `claude-sonnet-5` |
-| Email | Nodemailer ^9.0.3 (SMTP, configuré ici avec Resend) |
-| Config | dotenv ^16.4.5 |
-| Persistance | fichier JSON plat `data/db.json`, versionné en git — pas de vraie BDD |
-| Tests / lint | aucun |
-| CI/CD | GitHub Actions (`.github/workflows/veille-shinrin-yoku.yml`) |
-| Déploiement | pas de Dockerfile/Procfile — cron GitHub Actions pour le pipeline ; le tableau de bord HTML (`veille-la-borbolla/dashboard.html`) est publié sur **GitHub Pages** à chaque run par le même workflow |
-
-## Commandes essentielles
-
-```bash
-# Installation
-npm install
-cp .env.example .env              # puis renseigner ANTHROPIC_API_KEY, SMTP, destinataires
-
-# Exécution
-npm run veille                    # lance un run de veille complet (4 thématiques)
-npm run export                    # exporte toute la base de connaissances (data/db.json) en Markdown lisible
-npm run dashboard                 # régénère dashboard.html avec TOUTE la base (usage local ; le run hebdo ne publie que les nouvelles fiches)
-
-# Lancement local via wrapper bash (PATH nvm hardcodé — probablement pour un cron local)
-bin/run-veille.sh
-
-# CI manuelle
-gh workflow run veille-shinrin-yoku.yml   # déclenche le run via workflow_dispatch
-```
-
-Aucun test, aucun linter/formatter configuré dans ce repo.
-
-## Architecture (pipeline et modules)
+## Modules
 
 ```
-src/
-  config.js         Lecture des variables d'environnement (dotenv)
-  themes.js         Définition statique des 4 thématiques de veille
-                     (requête PubMed [Title/Abstract] + chercheurs de référence par thème)
-  sources/pubmed.js  Client PubMed E-utilities (esearch + efetch), fetch HTTP brut, générique
-                     par thématique — pas de dépendance à une lib PubMed tierce
-  extract.js         Extraction structurée via Claude : appel UNIQUE, TOOL-FORCÉ
-                     (tool_choice: {type:'tool', name:'enregistrer_fiche'}), un seul tool
-                     custom FICHE_TOOL — utilisé comme mécanisme de structured output,
-                     pas comme agent conversationnel (pas de mémoire, pas de boucle)
-  store.js           Chargement/sauvegarde de data/db.json + déduplication
-                     (clé : DOI normalisé, sinon titre normalisé)
-  digest.js          Journal hebdomadaire : UN appel Claude (tool forcé `rediger_journal`) sur toutes
-                     les fiches du run → titre de une, chapeau, « À la une » (3-6, priorité à
-                     l'applicabilité pour La Borbolla via `pertinence_brana_sana`), « En bref ».
-                     Claude cite les fiches par id ; liens/DOI/métadonnées viennent des fiches
-                     (`journalToMarkdown`), jamais du texte généré
-  markdown.js        Génération du rapport détaillé du run (fiches), organisé par section thématique
-  email.js           Envoi par email (Nodemailer) : corps HTML = journal, pièce jointe .md = fiches détaillées
-  index.js           Orchestration : boucle sur les 4 thématiques → dédup → extraction
-                      Claude par article nouveau → écriture Markdown → envoi email
-  export.js          Export Markdown de toute la base de connaissances (hors run)
-  exportHtml.js       Génère veille-la-borbolla/dashboard.html : tableau de bord HTML
-                     statique (zéro dépendance), filtrable par run/thématique/type
-                     d'étude, sans backend — exporte `writeDashboard(store)`, appelée
-                     par `main()` (CLI `npm run dashboard`) et par `src/index.js` après
-                     chaque run pour régénérer le fichier automatiquement
-
-data/db.json              Base de connaissances (source de vérité, toutes thématiques
-                            confondues), versionnée en git, champ `thematique_id` pour tri/filtre
-veille-la-borbolla/        Sorties Markdown du pipeline actuel (post-renommage, un fichier
-                            par run daté AAAA-MM-JJ.md) — cible réelle du code (src/index.js) —
-                            contient aussi `dashboard.html`, publié sur GitHub Pages par la CI
-veille-shinrin-yoku/       Dossier LEGACY pré-renommage, un seul fichier (2026-07-19.md),
-                            jamais migré ni supprimé — voir "Points d'attention"
-bin/run-veille.sh          Wrapper bash pour lancement local (PATH nvm hardcodé)
-.github/workflows/
-  veille-shinrin-yoku.yml  CI : cron hebdo (lundi 5h05 UTC) + workflow_dispatch manuel
+src/index.js                options : --preparer, --envoyer, --dry-run
+src/preparation.js          collecte → fiches → vérification → journal → base → file
+src/envoi.js, file-envois.js  envoi e-mail puis hub, avec reprise
+src/sources/pubmed.js       E-utilities, pagination par date d'entrée, parseur XML (regex)
+src/extract.js              fiche : outil forcé, validation
+src/appel-outil.js          troncature, validation, nouvelle tentative
+src/types-etude.js          types d'étude et règles PubMed
+src/verification.js         second appel + contrôle des chiffres (src/chiffres.js)
+src/digest.js               journal
+src/verification-journal.js contrôle du journal contre les fiches
+src/preuves.js              data/abstracts/<année>.json
+src/store.js                base et déduplication (PMID, DOI, titre)
+src/markdown.js, email.js, hub.js, exportHtml.js   sorties
 ```
-
-Pipeline détaillé d'un run (`src/index.js`) :
-1. Pour chaque thématique de `src/themes.js` : récupère les articles PubMed récents par
-   mots-clés (`fetchRecentPubmedArticles`) + par chercheurs de référence
-   (`fetchReferenceAuthorArticles`), étiquetés `thematiqueId`/`thematiqueLabel`
-2. Déduplique l'ensemble des articles (toutes thématiques confondues) contre
-   `data/db.json` (`partitionNewArticles`, clé DOI ou titre normalisé)
-3. Pour chaque article réellement nouveau, appelle Claude (`extractFiche`,
-   `claude-sonnet-5`) indépendamment — un appel = un article, pas de contexte partagé
-4. Sauvegarde les nouvelles fiches dans `data/db.json`
-5. Régénère `veille-la-borbolla/dashboard.html` (`writeDashboard`, `src/exportHtml.js`)
-   avec UNIQUEMENT les fiches nouvelles du run (la base complète reste dans
-   `data/db.json` ; `npm run dashboard` en local exporte toute la base)
-6. Génère le rapport détaillé (`buildRunMarkdown`) → `veille-la-borbolla/AAAA-MM-JJ-fiches.md`,
-   et le journal (`redigerJournal` + `journalToMarkdown`, `src/digest.js`) →
-   `veille-la-borbolla/AAAA-MM-JJ.md`. Si la rédaction du journal échoue, repli : le
-   rapport détaillé est écrit dans `AAAA-MM-JJ.md` et envoyé à la place. Lien vers
-   `DASHBOARD_URL` si renseignée (CI)
-7. Envoie par email le journal (fiches en pièce jointe) si des destinataires sont configurés — **aucun email
-   n'est envoyé s'il n'y a aucune étude nouvelle** (pas de bruit)
-
-La CI (`veille-shinrin-yoku.yml`) exécute ce pipeline puis **commit et push
-automatiquement** `data/db.json` et `veille-la-borbolla/` avec un bot dédié
-(`veille-shinrin-yoku-bot`), puis publie `veille-la-borbolla/dashboard.html` (renommé
-`index.html`) sur **GitHub Pages** via `actions/upload-pages-artifact` +
-`actions/deploy-pages` (job séparé `deploy-pages`, `needs: veille`). Le dépôt étant
-privé, la page Pages nécessite un plan GitHub payant (Pro/Team/Enterprise) — sur un
-plan Free, la publication Pages échoue en CI (`deploy-pages` en erreur) tant que le
-dépôt reste privé ; passer le dépôt en public ou upgrader le plan lève la limite.
 
 ## Conventions
 
-- Les requêtes PubMed passent toutes par `withExclusions` (`src/sources/pubmed.js`) : exclut
-  études animales/in vitro (termes [Title/Abstract] + MeSH « animaux sans humains », pas
-  `humans[MeSH]` seul qui perdrait les articles récents non indexés) et recommandations
-  cliniques. Garder les requêtes de thème précises (termes seuls trop larges = bruit hors sujet,
-  ex. « preventive medicine », « focused attention »).
-- Ajouter une thématique = ajouter une entrée dans `src/themes.js` uniquement — le
-  pipeline (`sources/pubmed.js`, `extract.js`, `index.js`) est générique et ne doit pas
-  être dupliqué par thématique.
-- Ne jamais faire deviner par Claude une information déjà connue de manière certaine
-  (ex. la thématique d'un article, connue dès la requête PubMed d'origine) — l'attacher
-  déterministiquement plutôt que de la faire ressortir du tool use.
-- Le champ `angle_brana_sana` (ou tout champ d'application produit) doit rester vide si
-  aucun lien concret et honnête ne se justifie — ne jamais forcer un rapprochement
-  marketing dans le prompt ou en aval.
-- Toute nouvelle source (ClinicalTrials.gov, Frontiers, MDPI...) doit suivre le même
-  modèle de module isolé dans `src/sources/`. Pas de scraping agressif (ex. Google
-  Scholar, sans API officielle) — fallback manuel uniquement.
-- Ne jamais committer de vraie clé API ou secret dans le repo — `.env` est gitignored,
-  `.env.example` ne contient que des noms de variables.
-
-## Variables d'environnement
-
-```
-VEILLE_THEMES                  # Optionnel — ids de thématiques (src/themes.js) séparés par des virgules ; vide = toutes
-ANTHROPIC_API_KEY             # Clé API Claude (Anthropic)
-
-PUBMED_API_KEY                 # Optionnel — quota plus élevé E-utilities NCBI
-PUBMED_TOOL_NAME               # Paramètre "tool" requis par l'API PubMed
-PUBMED_CONTACT_EMAIL           # Paramètre "email" requis par l'API PubMed
-PUBMED_MAX_RESULTS             # Nb max de résultats par thématique (recherche mots-clés)
-PUBMED_REFERENCE_AUTHOR_MAX_RESULTS  # Nb max de résultats par thématique (recherche par auteur)
-
-SMTP_HOST                      # Hôte SMTP (Resend en CI)
-SMTP_PORT                      # Port SMTP
-SMTP_SECURE                    # true/false
-SMTP_USER                      # Utilisateur SMTP
-SMTP_PASS                      # Mot de passe / clé SMTP
-SMTP_FROM                      # Adresse expéditeur affichée
-
-RECIPIENT_EMAIL_1              # Destinataire 1 du rapport
-RECIPIENT_EMAIL_2              # Destinataire 2 du rapport
-
-DASHBOARD_URL                   # URL publique du tableau de bord (GitHub Pages) — optionnel,
-                                 # ajoutée en tête du rapport quand renseignée ; vide en local
-```
-
-En CI (`veille-shinrin-yoku.yml`), ces valeurs sont injectées via `secrets.*` pour
-`ANTHROPIC_API_KEY` et `SMTP_PASS`, et en clair dans le workflow pour le reste
-(hôte/port SMTP Resend, adresses destinataires) — aucune valeur réelle à reporter ici.
+- Les requêtes passent toutes par `withExclusions` (animaux/in vitro et recommandations
+  cliniques exclus). Garder les requêtes étroites.
+- Ne jamais faire deviner au modèle ce que le code sait (thématique, PMID, DOI, titre,
+  date, type PubMed explicite).
+- `angle_brana_sana` reste vide sans lien concret et honnête (score 0 dans ce cas).
+- Tout ce que le modèle produit est validé après réception ; en cas de doute, on retire
+  plutôt qu'on diffuse.
+- Le tableau de bord est public : tout texte inséré doit rester échappé
+  (`jsonPourScript`, `textContent`, `escapeHtml`).
+- Aucune adresse ni aucun secret dans `data/` ou dans les messages d'erreur enregistrés.
+  `.env` n'est jamais commité.
 
 ## Points d'attention
 
-- **BUG CONNU (non corrigé au 10/09/2026) — dossier de sortie manquant en CI** : le
-  workflow fait `git add data/db.json veille-la-borbolla/`, mais ce dossier n'existe
-  pas encore dans le repo tel que committé (seul l'ancien `veille-shinrin-yoku/` du
-  pré-renommage existe, avec un seul fichier `2026-07-19.md`). Le code écrit bien dans
-  `veille-la-borbolla/` (`src/index.js`, depuis le commit de renommage `4e410a2`), mais
-  le dossier legacy n'a jamais été migré ni supprimé. Risque d'échec silencieux du
-  commit/push automatique tant que ce n'est pas corrigé — **à corriger en priorité**
-  (créer/committer `veille-la-borbolla/` avec au moins un `.gitkeep` ou migrer le
-  contenu de `veille-shinrin-yoku/`, puis supprimer ce dernier).
-- **Aucun test, aucun linter/formatter** dans le repo — toute modification doit être
-  vérifiée manuellement (lancement local via `npm run veille` ou `bin/run-veille.sh`).
-- **`data/db.json` grossit indéfiniment sans purge** — base JSON plate versionnée en
-  git, aucune archive/rotation prévue ; à surveiller si le volume d'articles/fiches
-  augmente significativement dans le temps.
-- **Aucune cible de déploiement** — le pipeline ne tourne que via le cron GitHub
-  Actions (`workflow_dispatch` pour un déclenchement manuel) ou en local via
-  `bin/run-veille.sh` (PATH nvm hardcodé, probablement destiné à un cron local en
-  complément ou en remplacement du CI).
-- **Un seul appel Claude par article**, indépendant, tool-forcé — ce n'est pas un
-  agent conversationnel : pas de mémoire, pas de boucle agentique, pas de contexte
-  partagé entre articles d'un même run.
+- Le hub ignore un second article portant la même semaine ISO.
+- `data/db.json` grossit sans purge.
+- `veille-shinrin-yoku/` est un ancien dossier de sortie, conservé.

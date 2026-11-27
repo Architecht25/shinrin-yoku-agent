@@ -37,7 +37,7 @@ const JOURNAL_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un court journal de veille scientifique pour La Borbolla / Braña Sana (centre bien-être en Asturies : sentiers et forêt, jardin, ateliers manuels, repos/sommeil, mindfulness, alimentation, prévention). Les lecteurs sont l'équipe du centre, pas des chercheurs.
+const SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un court journal de veille scientifique pour La Borbolla / Braña Sana (centre bien-être en Asturies : sentiers et forêt, jardin, ateliers manuels, repos, sieste, marche et sommeil). Les lecteurs sont l'équipe du centre, pas des chercheurs.
 
 Règles impératives :
 - Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_brana_sana", de 0 à 5, des fiches, à vérifier avec leur contenu).

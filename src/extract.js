@@ -10,7 +10,7 @@ const MAX_TOKENS_FICHE = 2048;
 export const FICHE_TOOL = {
   name: 'enregistrer_fiche',
   description:
-    "Enregistre la fiche structurée d'une étude scientifique liée à l'un des piliers de veille de Braña Sana.",
+    "Enregistre la fiche structurée d'une étude scientifique liée à l'une des thématiques de veille de Braña Sana.",
   input_schema: {
     type: 'object',
     properties: {
@@ -59,7 +59,7 @@ export const FICHE_TOOL = {
   },
 };
 
-const SYSTEM_PROMPT = `Tu es un assistant de veille scientifique rigoureux pour Braña Sana, un centre bien-être en Asturies (La Borbolla), dont les piliers couvrent le bain de forêt, le repos/sommeil, le retour au travail manuel, la mindfulness, la nutrition/longévité et la santé préventive. Ta seule tâche est d'extraire, à partir du titre et du résumé (abstract) d'une publication fournis par l'utilisateur, une fiche structurée factuelle.
+const SYSTEM_PROMPT = `Tu es un assistant de veille scientifique rigoureux pour Braña Sana, un centre bien-être en Asturies (La Borbolla), dont la veille porte sur le repos, les soins naturels et le retour au manuel : bain de forêt, repos et sommeil, sieste et marche, travail des mains (artisanat, potager). Ta seule tâche est d'extraire, à partir du titre et du résumé (abstract) d'une publication fournis par l'utilisateur, une fiche structurée factuelle.
 
 Règles impératives :
 - Ne jamais surinterpréter un résultat. Distingue toujours une association statistique d'une preuve d'effet causal.
