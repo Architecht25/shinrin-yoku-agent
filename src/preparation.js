@@ -8,7 +8,8 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import { fetchRecentPubmedArticles, fetchReferenceAuthorArticles, fetchArticles } from './sources/pubmed.js';
 import { loadStore, saveStore, partitionNewArticles, lireJson, ecrireJson } from './store.js';
 import { createAnthropicClient, extractFiche, estExploitable } from './extract.js';
-import { redigerJournal, journalToMarkdown, decrireFiches } from './digest.js';
+import { redigerJournal, journalToMarkdown, decrireFiches, retenirPourJournal, journalVide } from './digest.js';
+import { config } from './config.js';
 import { verifierFiche } from './verification.js';
 import { verifierJournal } from './verification-journal.js';
 import { buildRunMarkdown } from './markdown.js';
@@ -17,6 +18,8 @@ import { separerPreuve, enregistrerPreuves } from './preuves.js';
 import { buildHubPayload } from './hub.js';
 import { mettreEnFile } from './file-envois.js';
 import { fenetreCollecte } from './fenetre.js';
+import { estRetracte, verifierRetractations } from './retractations.js';
+import { evaluerFicheAncienne } from './evaluation-ancienne.js';
 
 export const MAX_TENTATIVES_EXTRACTION = 3;
 
@@ -92,6 +95,11 @@ export async function preparer({
   for (const theme of themes) {
     articles.push(...(await fetchThemeArticles(theme, jours, sources)));
   }
+  const publiables = articles.filter((a) => !estRetracte(a));
+  if (publiables.length < articles.length) {
+    console.log(`[veille] ${articles.length - publiables.length} publication(s) rétractée(s) ou avis de rétractation exclu(s).`);
+  }
+  const retractees = await verifierRetractations(store, runDate, sources.parPmids);
   const marquerCollecte = async () => {
     if (toutes) await ecrireJson(emplacements.etat, { ...etat, derniere_collecte: runDate });
   };
@@ -100,12 +108,12 @@ export async function preparer({
   // fois, même si elle correspond aux mots-clés de plusieurs thématiques à la fois.
   // Les extractions échouées sont traitées à part, avec un nombre de tentatives limité.
   const enEchec = new Set(store.fiches.filter((f) => f.statut === 'extraction échouée' && f.pmid).map((f) => f.pmid));
-  const inedits = partitionNewArticles(store, articles).filter((a) => !enEchec.has(a.pmid));
-  const aRetenter = await articlesARetenter(store, sources);
+  const inedits = partitionNewArticles(store, publiables).filter((a) => !enEchec.has(a.pmid));
+  const aRetenter = (await articlesARetenter(store, sources)).filter((a) => !estRetracte(a));
   console.log(`[veille] ${inedits.length} article(s) nouveau(x), ${aRetenter.length} à retenter.`);
 
   const aTraiter = [...inedits, ...aRetenter];
-  if (aTraiter.length === 0) {
+  if (aTraiter.length === 0 && retractees.length === 0) {
     await marquerCollecte();
     console.log('[veille] Rien de nouveau — pas de fiche à créer, pas d’email à envoyer.');
     return { nouvelles: 0 };
@@ -138,12 +146,26 @@ export async function preparer({
     throw new Error(`Toutes les extractions ont échoué (${echecs.length}) — rien n'est enregistré.`);
   }
 
+  // Les anciennes fiches qui reparaissent (ici : rétractées) sont évaluées à ce moment-là.
+  if (retractees.length) {
+    const articlesAnciens = await sources.parPmids(retractees.map((f) => f.pmid)).catch(() => []);
+    for (let i = 0; i < retractees.length; i += 1) {
+      const ancienne = retractees[i];
+      const { fiche, preuve } = await evaluerFicheAncienne(client, ancienne, articlesAnciens.find((a) => a.pmid === ancienne.pmid), runDate);
+      if (!preuve) continue;
+      store.fiches[store.fiches.indexOf(ancienne)] = fiche;
+      retractees[i] = fiche;
+      preuves.push(preuve);
+    }
+  }
+
   let envoi = null;
-  if (nouvellesFiches.length > 0) {
+  if (nouvellesFiches.length > 0 || retractees.length > 0) {
     // Publication hebdomadaire : uniquement les fiches nouvelles de ce run (la base complète
     // reste dans data/db.json ; `npm run dashboard` régénère un tableau de bord complet en local).
-    await writeDashboard({ fiches: nouvellesFiches }, emplacements.sorties);
-    envoi = await redigerSorties(client, nouvellesFiches, { runDate, runId, dashboardUrl, dossier: emplacements.sorties });
+    // Une fiche rétractée y reparaît, avec son avertissement.
+    await writeDashboard({ fiches: [...retractees, ...nouvellesFiches] }, emplacements.sorties);
+    envoi = await redigerSorties(client, nouvellesFiches, { runDate, runId, dashboardUrl, dossier: emplacements.sorties, retractees });
   }
 
   // La base d'abord : si son enregistrement échoue, rien n'entre dans la file des envois.
@@ -159,23 +181,28 @@ export async function preparer({
 }
 
 /** Écrit le rapport détaillé et le journal, et renvoie ce qui doit être envoyé. */
-async function redigerSorties(client, nouvellesFiches, { runDate, runId, dashboardUrl, dossier }) {
-  const fichesMarkdown = buildRunMarkdown(nouvellesFiches, { runDate, dashboardUrl });
+async function redigerSorties(client, nouvellesFiches, { runDate, runId, dashboardUrl, dossier, retractees }) {
+  const fichesMarkdown = buildRunMarkdown(nouvellesFiches, { runDate, dashboardUrl, retractees });
 
   // Journal lisible (priorité à ce qui est applicable à La Borbolla) ; si la rédaction ou son
   // contrôle échoue, on retombe sur le rapport détaillé plutôt que de ne rien envoyer.
   let journalMarkdown = null;
   let journal = null;
-  const fichesJournal = nouvellesFiches.filter((f) => f.verification.journal !== 'exclue');
+  const seuil = config.seuilPertinence;
+  const fichesJournal = retenirPourJournal(nouvellesFiches, seuil);
+  console.log(`[veille] ${fichesJournal.length} fiche(s) sur ${nouvellesFiches.length} au seuil de pertinence (${seuil}/5) ou au-dessus.`);
   try {
-    if (fichesJournal.length === 0) throw new Error('aucune fiche retenue après vérification');
-    const brouillon = await redigerJournal(client, fichesJournal);
-    const controle = await verifierJournal(client, brouillon, fichesJournal, decrireFiches(fichesJournal));
-    journal = controle.journal;
-    for (const { phrase, raison } of controle.suppressions) {
-      console.log(`[veille] Journal, phrase supprimée : « ${phrase} » (${raison})`);
+    if (fichesJournal.length === 0) {
+      journal = journalVide(seuil);
+    } else {
+      const brouillon = await redigerJournal(client, fichesJournal);
+      const controle = await verifierJournal(client, brouillon, fichesJournal, decrireFiches(fichesJournal));
+      journal = controle.journal;
+      for (const { phrase, raison } of controle.suppressions) {
+        console.log(`[veille] Journal, phrase supprimée : « ${phrase} » (${raison})`);
+      }
     }
-    journalMarkdown = journalToMarkdown(journal, fichesJournal, { runDate, dashboardUrl, total: nouvellesFiches.length });
+    journalMarkdown = journalToMarkdown(journal, fichesJournal, { runDate, dashboardUrl, total: nouvellesFiches.length, retractees });
   } catch (err) {
     journal = null;
     console.error(`[veille] Échec de la rédaction ou du contrôle du journal, repli sur le rapport détaillé : ${err.message}`);
@@ -199,6 +226,7 @@ async function redigerSorties(client, nouvellesFiches, { runDate, runId, dashboa
       journal,
       body: journalMarkdown || fichesMarkdown,
       fiches: journal ? fichesJournal : nouvellesFiches,
+      retractees,
       runDate,
       runId,
     }),

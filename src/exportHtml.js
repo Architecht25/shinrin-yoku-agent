@@ -162,6 +162,7 @@ export function buildHtml(fiches) {
   .badge-pertinence {
     background: rgba(12,163,12,0.16); color: #0ca30c; font-weight: 600;
   }
+  .badge-retractation { background: rgba(208,59,59,0.16); color: #d03b3b; font-weight: 700; }
   .meta-line { color: var(--text-secondary); font-size: 0.78rem; margin-top: 4px; }
   .snippet { color: var(--text-secondary); font-size: 0.85rem; margin-top: 6px; }
   .details { display: none; margin-top: 10px; border-top: 1px solid var(--gridline); padding-top: 10px; font-size: 0.85rem; }
@@ -342,7 +343,7 @@ export function buildHtml(fiches) {
         // pertinence décroissante — pour repérer vite ce qui compte parmi 60+ articles.
         byTheme[id]
           .slice()
-          .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+          .sort((a, b) => (b.pertinence_centre ?? b.pertinence_brana_sana ?? 0) - (a.pertinence_centre ?? a.pertinence_brana_sana ?? 0))
           .forEach((f) => listEl.appendChild(renderCard(f, id)));
       });
   }
@@ -355,11 +356,14 @@ export function buildHtml(fiches) {
 
     const head = document.createElement('div');
     head.className = 'card-head';
-    const pertinence = f.angle_brana_sana ? (Number(f.pertinence_brana_sana) || 0) : null;
+    const pertinence = f.angle_brana_sana ? (Number(f.pertinence_centre ?? f.pertinence_brana_sana) || 0) : null;
     head.innerHTML =
       '<p class="card-title">' + escapeHtml(f.titre) + '</p>' +
+      (f.avertissement_retractation ? '<span class="badge badge-retractation">⚠️ rétractée</span>' : '') +
       (pertinence ? '<span class="badge badge-pertinence">pertinence ' + pertinence + '/5</span>' : '') +
-      '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>';
+      '<span class="badge">' + escapeHtml(f.type_etude || '?') + '</span>' +
+      '<span class="badge">niveau : ' + escapeHtml(f.niveau_de_preuve || 'non évalué') + '</span>' +
+      '<span class="badge">extraction : ' + escapeHtml(f.confiance_extraction || 'non évalué') + '</span>';
     card.appendChild(head);
 
     const meta = document.createElement('div');
@@ -379,7 +383,9 @@ export function buildHtml(fiches) {
       const rows = [
         ['Mécanisme évalué', f.mecanisme_evalue],
         ['Résultat principal', f.resultat_principal],
-        ['Niveau de preuve et limites', f.niveau_de_preuve_et_limites],
+        ['Niveau de preuve', (f.niveau_de_preuve || 'non évalué') + ' — extraction : ' + (f.confiance_extraction || 'non évalué')],
+        ['Justification du niveau', f.justification_niveau],
+        ['Limites', f.niveau_de_preuve_et_limites],
         ['Angle Braña Sana', f.angle_brana_sana || '(aucun angle retenu)'],
       ];
       rows.forEach(([label, value]) => {

@@ -36,6 +36,8 @@ src/sources/pubmed.js       E-utilities, pagination par date d'entrée, parseur 
 src/extract.js              fiche : outil forcé, validation
 src/appel-outil.js          troncature, validation, nouvelle tentative
 src/types-etude.js          types d'étude et règles PubMed
+src/niveaux.js              niveau de preuve, prudence, verbes causaux, étiquettes
+src/retractations.js, evaluation-ancienne.js
 src/verification.js         second appel + contrôle des chiffres (src/chiffres.js)
 src/digest.js               journal
 src/verification-journal.js contrôle du journal contre les fiches

@@ -51,6 +51,38 @@ la main (`workflow_dispatch`).
 6. **Enregistrement** de la base, des preuves et de la file des envois.
 7. **Envoi** : tous les e-mails d'abord, puis le hub.
 
+## Niveau de preuve
+
+Chaque nouvelle fiche porte quatre notions distinctes :
+
+| Champ | Valeurs |
+|---|---|
+| `type_etude` | liste ci-dessous |
+| `niveau_de_preuve` | essai contrôlé, synthèse d'études, observationnelle, exploratoire, opinion ou revue narrative, indéterminé |
+| `confiance_extraction` | vérifié (confirmé sans modification par le second appel), à confirmer |
+| `pertinence_centre` | 0 à 5 : utilité du sujet pour le centre, sans lien avec la force de la preuve |
+
+Attribution (`src/niveaux.js`) : un Publication Type explicite s'impose. Sinon
+« indéterminé », sauf proposition du modèle appuyée sur un extrait retrouvé mot pour mot
+dans le résumé (l'extrait n'est pas enregistré) puis confirmée ou corrigée par le second
+appel. Règles de prudence, qui priment sur tout : revue narrative et perspective au plus
+« opinion ou revue narrative » ; étude pilote, de faisabilité, qualitative ou de moins de
+`SEUIL_PETIT_ECHANTILLON` personnes (30) : « exploratoire » ; aucun verbe causal sur une
+étude observationnelle (liste de verbes, imparfaite : la relecture reste nécessaire).
+
+**Journal** : sous `SEUIL_PERTINENCE_CENTRE` (3), une fiche n'entre ni « À la une » ni
+« En bref » ; « Rien cette semaine » est un résultat normal. « Opinion ou revue
+narrative » et « indéterminé » ne vont à la une qu'avec un avertissement. Les étiquettes
+sont toujours lues sur la fiche. Le hub reçoit dans `metadata.etudes`, pour chaque étude
+retenue : type, niveau, confiance, pertinence, DOI, PMID.
+
+**Rétractations** : exclues à la collecte ; chaque run revérifie les fiches des 12
+dernières semaines. Un avertissement est ajouté à la fiche, en tête du journal et du
+résumé envoyé au hub. Un article déjà livré au hub n'est pas modifié.
+
+Les anciennes fiches restent « non évalué » ; une fiche qui reparaît (rétractation) est
+évaluée une seule fois, sans reclassement de ses textes.
+
 ## Types d'étude
 
 revue systématique, méta-analyse, revue de portée, revue narrative, essai contrôlé
@@ -60,8 +92,7 @@ perspective, indéterminé.
 Un type PubMed explicite (`Publication Types`) est appliqué par le code. Avec « Review »
 seul, le modèle précise parmi les revues. Voir `src/types-etude.js`.
 
-Les fiches antérieures gardent leurs anciens types, non reclassés. Toutes les fiches
-portent `niveau_de_preuve: "non évalué"` : l'étiquetage reste à faire.
+Les fiches antérieures gardent leurs anciens types, non reclassés.
 
 ## Données
 

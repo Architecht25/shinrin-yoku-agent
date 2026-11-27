@@ -20,6 +20,18 @@ function ficheUrl(fiche) {
   return null;
 }
 
+/** Une entrée par étude retenue, avec ces seuls champs. */
+function metadataEtude(f) {
+  return {
+    type_etude: f.type_etude ?? null,
+    niveau_de_preuve: f.niveau_de_preuve ?? null,
+    confiance_extraction: f.confiance_extraction ?? null,
+    pertinence_centre: f.pertinence_centre ?? null,
+    doi: f.doi || null,
+    pmid: f.pmid || null,
+  };
+}
+
 /** Fiches citées dans le journal (ids valides, sans doublon) ; toutes les fiches en repli sans journal. */
 function citedFiches(journal, fiches) {
   if (!journal) return fiches;
@@ -37,19 +49,25 @@ function citedFiches(journal, fiches) {
  * Construit le payload du hub. `body` est le contenu envoyé par email (journal, ou rapport
  * détaillé en repli) ; `journal` peut être null si la rédaction a échoué.
  */
-export function buildHubPayload({ journal, body, fiches, runDate, runId }) {
+export function buildHubPayload({ journal, body, fiches, runDate, runId, retractees = [] }) {
   const { year, week } = isoWeek(runDate);
-  const sources = citedFiches(journal, fiches)
+  const retenues = citedFiches(journal, fiches);
+  const sources = retenues
     .map((f) => ({ title: f.titre, url: ficheUrl(f) }))
     .filter((s) => s.url);
   return {
     title: `Veille bien-être, semaine ${String(week).padStart(2, '0')}`,
-    summary: journal?.chapeau || `${fiches.length} nouvelle(s) étude(s) analysée(s) cette semaine.`,
+    // L'avertissement ouvre le résumé : le hub l'affiche toujours, même sans déplier le corps.
+    summary: [
+      retractees.length ? `⚠️ ${retractees.length} publication(s) rétractée(s) : voir le détail dans l'article.` : '',
+      journal?.chapeau || `${fiches.length} nouvelle(s) étude(s) analysée(s) cette semaine.`,
+    ].filter(Boolean).join(' '),
     body,
     kind: 'info',
     kicker: 'Bien-être',
     sources,
     sensitivity: 'normal',
+    metadata: { etudes: retenues.map(metadataEtude) },
     external_id: `${year}-W${String(week).padStart(2, '0')}`,
     run_id: runId,
   };

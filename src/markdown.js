@@ -1,4 +1,18 @@
 import { THEMES } from './themes.js';
+import { etiquettes } from './niveaux.js';
+
+export const AVERTISSEMENT_RETRACTATION = '⚠️ Publication rétractée : ne plus utiliser ni citer ce résultat.';
+
+/** Section placée en tête quand des fiches déjà diffusées viennent d'être rétractées. */
+export function blocRetractations(fiches = []) {
+  if (!fiches.length) return '';
+  const lignes = fiches.map((f) => {
+    const url = f.doi ? `https://doi.org/${f.doi}` : f.lien;
+    const e = etiquettes(f);
+    return `- **${f.titre}** (niveau de preuve : ${e.niveau} — extraction : ${e.confiance} ; rapportée le ${f.ajoute_le}, rétractation détectée le ${f.avertissement_retractation.detectee_le}${url ? ` — [source](${url})` : ''})`;
+  });
+  return ['## ⚠️ Rétractations détectées', '', AVERTISSEMENT_RETRACTATION, '', ...lignes].join('\n');
+}
 
 function ficheToMarkdown(fiche) {
   const lienLigne = fiche.doi
@@ -15,16 +29,20 @@ function ficheToMarkdown(fiche) {
   const lignes = [
     titre,
     '',
+    ...(fiche.avertissement_retractation ? [`**${AVERTISSEMENT_RETRACTATION}**`, ''] : []),
     `- **Auteurs** : ${fiche.auteurs || 'non précisé'}`,
     `- **Date** : ${fiche.date || 'non précisée'}`,
     `- **Source** : ${fiche.source || 'non précisée'}${fiche.pmid ? ` (PMID ${fiche.pmid})` : ''}`,
     `- **DOI / lien** : ${lienLigne}`,
-    `- **Type d'étude** : ${fiche.type_etude || 'non précisé'}`,
+    `- **Type d'étude** : ${etiquettes(fiche).type}`,
     `- **Mécanisme évalué** : ${fiche.mecanisme_evalue || 'non précisé'}`,
     '',
     `**Résultat principal** : ${fiche.resultat_principal || 'non précisé'}`,
     '',
-    `**Niveau de preuve / limites** : ${fiche.niveau_de_preuve_et_limites || 'non précisé'}`,
+    `**Niveau de preuve** : ${etiquettes(fiche).niveau} — extraction : ${etiquettes(fiche).confiance}`,
+    '',
+    `- **Justification** : ${fiche.justification_niveau || 'non évaluée'}`,
+    `- **Limites** : ${fiche.niveau_de_preuve_et_limites || 'non précisé'}`,
   ];
 
   if (fiche.angle_brana_sana) {
@@ -62,7 +80,7 @@ function selectionPertinenceMarkdown(fiches, { limit = 5 } = {}) {
 
   const sections = themesAvecSelection.map((theme) => {
     const top = [...groupes.get(theme.id)]
-      .sort((a, b) => (b.pertinence_brana_sana || 0) - (a.pertinence_brana_sana || 0))
+      .sort((a, b) => (b.pertinence_centre ?? b.pertinence_brana_sana ?? 0) - (a.pertinence_centre ?? a.pertinence_brana_sana ?? 0))
       .slice(0, limit);
     const items = top.map((f) => `- **${f.titre}** — ${f.angle_brana_sana}`).join('\n');
     return [`### ${theme.label}`, '', items].join('\n');
@@ -93,7 +111,7 @@ function sectionsMarkdown(fiches) {
  * Génère le Markdown d'un run de veille (uniquement les fiches nouvellement ajoutées),
  * organisé par section thématique.
  */
-export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
+export function buildRunMarkdown(fiches, { runDate, dashboardUrl, retractees = [] }) {
   const entete = [
     `# Veille La Borbolla / Braña Sana — ${runDate}`,
     '',
@@ -101,6 +119,7 @@ export function buildRunMarkdown(fiches, { runDate, dashboardUrl }) {
     ...(dashboardUrl ? ['', `[Tableau de bord de tri](${dashboardUrl})`] : []),
     '',
     '---',
+    ...(retractees.length ? ['', blocRetractations(retractees), '', '---'] : []),
   ];
 
   const selection = selectionPertinenceMarkdown(fiches);

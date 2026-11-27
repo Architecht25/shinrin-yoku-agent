@@ -2,11 +2,12 @@ import Anthropic from '@anthropic-ai/sdk';
 import { config } from './config.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
 import { TYPES_ETUDE, contrainteType, resoudreType } from './types-etude.js';
+import { LISTE_NIVEAUX, NIVEAU_NON_EVALUE, niveauParPubmed, resoudreNiveau } from './niveaux.js';
+
+export { NIVEAU_NON_EVALUE };
 
 export const MODEL = 'claude-sonnet-5';
 export const ECHEC_EXTRACTION = 'extraction échouée';
-/** L'étiquetage du niveau de preuve n'existe pas encore. */
-export const NIVEAU_NON_EVALUE = 'non évalué';
 const MAX_TOKENS_FICHE = 2048;
 
 export const FICHE_TOOL = {
@@ -41,9 +42,26 @@ export const FICHE_TOOL = {
         type: 'string',
         description: "Angle d'application concret pour Braña Sana (sentier, jardin médicinal, atelier manuel, programme de repos) UNIQUEMENT si un lien pertinent et honnête existe. Toujours fournir le champ ; chaîne vide (sans expliquer pourquoi) si aucun lien pertinent ne se justifie — ne jamais forcer un rapprochement.",
       },
-      pertinence_brana_sana: {
+      niveau_propose: {
+        type: 'string',
+        enum: LISTE_NIVEAUX,
+        description: "Niveau de preuve proposé d'après le seul résumé. « indéterminé » si le résumé ne permet pas de trancher.",
+      },
+      extrait_justification: {
+        type: 'string',
+        description: "UNE phrase ou portion de phrase recopiée mot pour mot du résumé (en anglais s'il l'est) qui justifie le niveau proposé. Chaîne vide si « indéterminé ».",
+      },
+      justification_niveau: {
+        type: 'string',
+        description: 'La justification du niveau en une phrase en français, appuyée sur cet extrait.',
+      },
+      effectif: {
         type: 'integer',
-        description: "Score de pertinence pratique pour Braña Sana, de 0 à 5. Doit valoir 0 si angle_brana_sana est vide. Sinon, reflète la force combinée de la preuve et le caractère concret/actionnable de l'angle (5 = preuve solide et application directe à un programme ou un espace existant ; 1-2 = lien plausible mais preuve faible ou angle vague). Ne jamais gonfler ce score pour rendre un article artificiellement intéressant.",
+        description: "Nombre de participants de l'étude tel qu'écrit dans le résumé ; 0 s'il n'y est pas ou s'il s'agit d'une synthèse.",
+      },
+      pertinence_centre: {
+        type: 'integer',
+        description: "Utilité pratique du SUJET pour les activités de Braña Sana, de 0 à 5, SANS AUCUN lien avec la force de la preuve (jugée à part) : 5 = porte directement sur un programme ou un espace existant et un public comparable ; 3 = application concrète moyennant une adaptation ; 1 = lien lointain ; 0 = aucun lien (angle_brana_sana vide).",
       },
     },
     required: [
@@ -56,7 +74,11 @@ export const FICHE_TOOL = {
       'resultat_principal',
       'niveau_de_preuve_et_limites',
       'angle_brana_sana',
-      'pertinence_brana_sana',
+      'niveau_propose',
+      'extrait_justification',
+      'justification_niveau',
+      'effectif',
+      'pertinence_centre',
     ],
   },
 };
@@ -68,7 +90,8 @@ Règles impératives :
 - Si le résumé mentionne une taille d'échantillon réduite, une absence de groupe contrôle, un biais ou une hétérogénéité méthodologique, le signaler dans "niveau_de_preuve_et_limites".
 - Si le résumé ne mentionne aucune limite, ne pas en inventer — indique "non précisé dans le résumé".
 - Le champ "angle_brana_sana" doit rester vide si aucun lien concret et honnête ne se justifie. Ne force jamais un rapprochement marketing.
-- Le champ "pertinence_brana_sana" (0 à 5) doit rester honnête et cohérent avec "angle_brana_sana" : 0 si ce dernier est vide, et proportionnel à la force de la preuve et au caractère concret de l'angle sinon. Ne jamais le gonfler.
+- "pertinence_centre" (0 à 5) mesure seulement l'utilité du sujet pour le centre : une étude faible sur un sujet central peut valoir 5, une étude solide sur un sujet lointain 1. La force de la preuve se dit dans le niveau de preuve, jamais dans ce score. 0 si "angle_brana_sana" est vide.
+- Pour une étude observationnelle, aucun verbe causal (réduit, améliore, entraîne, protège, favorise, augmente...) : écris « est associé à ».
 - Utilise exclusivement les informations fournies (titre, résumé, métadonnées) — n'invente aucune donnée absente.
 - Tous les champs de l'outil sont obligatoires, y compris "angle_brana_sana" (chaîne vide si aucun angle).
 - Deux cas seulement : soit "angle_brana_sana" décrit une application concrète et le score va de 1 à 5 ; soit "angle_brana_sana" vaut exactement "" et le score 0. N'écris jamais dans ce champ qu'il n'y a pas de lien, ni pourquoi.
@@ -83,6 +106,13 @@ function consigneType(article) {
   return '';
 }
 
+function consigneNiveau(article) {
+  const { impose, permis } = niveauParPubmed(article.publicationTypes);
+  if (impose) return `Niveau de preuve imposé par PubMed : ${impose}`;
+  if (permis) return `Niveaux compatibles avec PubMed : ${permis.join(', ')}`;
+  return '';
+}
+
 function buildUserMessage(article) {
   return [
     `Thématique de veille : ${article.thematiqueLabel}`,
@@ -94,6 +124,7 @@ function buildUserMessage(article) {
     article.url ? `Lien source : ${article.url}` : '',
     article.publicationTypes?.length ? `Types de publication déclarés : ${article.publicationTypes.join(', ')}` : '',
     consigneType(article),
+    consigneNiveau(article),
     '',
     'Résumé (abstract) :',
     article.abstract || '(aucun résumé disponible — base-toi uniquement sur le titre et indique-le dans les limites)',
@@ -109,9 +140,10 @@ export function validerFiche(fiche) {
   for (const cle of ['titre', 'type_etude', 'mecanisme_evalue', 'resultat_principal', 'niveau_de_preuve_et_limites']) {
     if (!fiche[cle].trim()) erreurs.push(`champ vide : ${cle}`);
   }
-  const score = fiche.pertinence_brana_sana;
+  if (fiche.effectif < 0) erreurs.push('effectif négatif');
+  const score = fiche.pertinence_centre;
   const angle = fiche.angle_brana_sana.trim();
-  if (score < 0 || score > 5) erreurs.push('pertinence_brana_sana doit être entre 0 et 5');
+  if (score < 0 || score > 5) erreurs.push('pertinence_centre doit être entre 0 et 5');
   if (angle && score === 0) erreurs.push('angle_brana_sana renseigné avec un score de 0 : avec un score de 0, renvoie angle_brana_sana = "" (aucun texte, aucune explication) ; sinon donne un score de 1 à 5');
   if (!angle && score !== 0) erreurs.push('score non nul sans angle_brana_sana');
   return erreurs;
@@ -150,7 +182,13 @@ export async function extractFiche(client, article) {
       maxTokens: MAX_TOKENS_FICHE,
       valider: validerFiche,
     });
-    const { doi_ou_lien, type_etude: typeModele, ...rest } = reponse;
+    const {
+      doi_ou_lien, type_etude: typeModele,
+      niveau_propose, extrait_justification, justification_niveau, effectif,
+      ...rest
+    } = reponse;
+    // L'extrait sert au contrôle puis disparaît : aucun texte de résumé n'est enregistré.
+    const niveau = resoudreNiveau(article, { niveau_propose, extrait_justification, justification_niveau });
     const { type, origine } = resoudreType(article.publicationTypes, typeModele);
     const codes = champsDuCode(article);
     // Titre et date viennent de PubMed quand ils existent : le modèle ne les réécrit pas.
@@ -158,11 +196,19 @@ export async function extractFiche(client, article) {
       ...(article.title ? { titre: article.title } : {}),
       ...(article.date ? { date: article.date } : {}),
     };
-    const fiche = { ...rest, ...duCode, type_etude: type, ...codes, lien: codes.lien || doi_ou_lien || null };
+    const fiche = {
+      ...rest, ...duCode, type_etude: type, ...codes, lien: codes.lien || doi_ou_lien || null,
+      niveau_de_preuve: niveau.niveau,
+      justification_niveau: niveau.justification,
+      effectif: effectif || null,
+    };
     const origines = Object.fromEntries(
       Object.keys(fiche).map((cle) => [cle, cle in codes || cle in duCode ? 'code' : 'modèle'])
     );
     origines.type_etude = origine;
+    origines.niveau_de_preuve = niveau.origine;
+    origines.justification_niveau = niveau.origine;
+    origines.effectif = 'modèle';
     if (!codes.lien && doi_ou_lien) origines.lien = 'modèle';
     return { ...fiche, origines };
   } catch (err) {

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { valeursSource, chiffresAbsents, retirerPhrasesNonSourcees } from '../src/chiffres.js';
 import { verifierFiche, MARQUE_A_CORRIGER } from '../src/verification.js';
 import { verifierJournal } from '../src/verification-journal.js';
-import { decrireFiches, journalToMarkdown } from '../src/digest.js';
+import { decrireFiches, journalToMarkdown, retenirPourJournal, journalVide } from '../src/digest.js';
 import { ficheModele, reponseOutil, clientSimule } from './helpers.js';
 
 const resume = 'Twenty-one adults (of 21,318 screened) walked for 30 minutes during five weeks; p < .05, SD 1·5.';
@@ -32,7 +32,7 @@ test('seule la phrase au chiffre non sourcé est retirée', () => {
 const preuve = { titre_pubmed: 'Walking study', resume, publication_types: ['Randomized Controlled Trial'], sources_champs: {} };
 const fiche = (o = {}) => ({ ...ficheModele({ type_etude: 'essai contrôlé randomisé', ...o }) });
 const avis = (o = {}) =>
-  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', ...o });
+  reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', ...o });
 
 test('fiche confirmée : éligible à la une', async () => {
   const { fiche: f } = await verifierFiche(clientSimule(avis()), fiche(), preuve);
@@ -101,6 +101,29 @@ test('première phrase supprimée : le texte reprend le résultat de la fiche', 
   assert.equal(journal.a_la_une[0].texte, 'Marche de 30 minutes.');
 });
 
+test('« En bref » sans sa première phrase : la ligne reprend le résultat de la fiche', async () => {
+  const deux = { ...brouillon, en_bref: [{ fiche_id: 1, phrase: 'Début inventé. étude de petite portée, à confirmer.' }] };
+  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [{ id: 'bref.0.0', raison: 'absent' }] })), deux, fiches, decrireFiches(fiches));
+  assert.equal(journal.en_bref[0].phrase, 'Association observée.');
+});
+
 test('contrôle du journal impossible : lève, pour retomber sur le rapport détaillé', async () => {
   await assert.rejects(verifierJournal(clientSimule(reponseOutil({})), brouillon, fiches, decrireFiches(fiches)));
+});
+
+test('journal : verbe causal supprimé pour une étude observationnelle seulement', async () => {
+  const obs = [{ ...fiches[0], niveau_de_preuve: 'observationnelle' }, { ...fiches[1], niveau_de_preuve: 'essai contrôlé' }];
+  const j = { titre_une: 'T', chapeau: 'C.', a_la_une: [], en_bref: [
+    { fiche_id: 0, phrase: 'Association vue. La marche réduit le stress.' }, { fiche_id: 1, phrase: 'La marche réduit le stress.' },
+  ] };
+  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), j, obs, decrireFiches(obs));
+  assert.deepEqual(journal.en_bref.map((b) => b.phrase), ['Association vue.', 'La marche réduit le stress.']);
+});
+
+test('seuil de pertinence : en dessous, ni à la une ni en bref ; le niveau de preuve n’y change rien', () => {
+  const f = (pertinence_centre, journal = 'une', niveau_de_preuve = 'exploratoire') => ({ pertinence_centre, niveau_de_preuve, verification: { journal } });
+  const liste = [f(2, 'une', 'essai contrôlé'), f(3), f(5, 'bref'), f(5, 'exclue')];
+  assert.deepEqual(retenirPourJournal(liste, 3), [liste[1], liste[2]]);
+  assert.equal(retenirPourJournal(liste, 0).length, 3);
+  assert.equal(journalVide(3).a_la_une.length, 0);
 });

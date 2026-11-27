@@ -1,5 +1,7 @@
 import { MODEL } from './extract.js';
 import { appelerOutil, validerSchema } from './appel-outil.js';
+import { blocRetractations } from './markdown.js';
+import { ligneEtiquettes, NIVEAUX_A_SIGNALER } from './niveaux.js';
 
 const JOURNAL_TOOL = {
   name: 'rediger_journal',
@@ -40,9 +42,11 @@ const JOURNAL_TOOL = {
 const SYSTEM_PROMPT = `Tu es le rédacteur en chef d'un court journal de veille scientifique pour La Borbolla / Braña Sana (centre bien-être en Asturies : sentiers et forêt, jardin, ateliers manuels, repos, sieste, marche et sommeil). Les lecteurs sont l'équipe du centre, pas des chercheurs.
 
 Règles impératives :
-- Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_brana_sana", de 0 à 5, des fiches, à vérifier avec leur contenu).
+- Sélectionne en priorité ce qui est directement applicable à La Borbolla (champ "pertinence_centre", de 0 à 5, à vérifier avec le contenu ; il ne dit rien de la force de la preuve, donnée par "niveau_de_preuve").
 - Style journalistique clair et bref, sans jargon, mais sans jamais surinterpréter : distingue association et effet causal, mentionne les limites importantes (petit échantillon, pas de groupe contrôle...).
 - Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
+- N'écris pas les étiquettes (type, niveau de preuve) : elles sont ajoutées automatiquement depuis les fiches.
+- Aucun verbe causal pour une étude observationnelle.
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.
 - Pas de ton marketing. Ce texte sera relu avant tout usage éditorial.
 - Réponds uniquement en appelant l'outil "rediger_journal".`;
@@ -51,7 +55,8 @@ function compactFiche(fiche, id) {
   return {
     id,
     thematique: fiche.thematique,
-    pertinence_brana_sana: fiche.pertinence_brana_sana ?? null,
+    pertinence_centre: fiche.pertinence_centre ?? null,
+    niveau_de_preuve: fiche.niveau_de_preuve,
     titre: fiche.titre,
     type_etude: fiche.type_etude,
     resultat_principal: fiche.resultat_principal,
@@ -78,6 +83,23 @@ export async function redigerJournal(client, fiches) {
   });
 }
 
+/** Fiches admises dans le journal : ni écartées par la vérification, ni sous le seuil. */
+export function retenirPourJournal(fiches, seuil) {
+  return fiches.filter(
+    (f) => f.verification.journal !== 'exclue' && !f.avertissement_retractation && (f.pertinence_centre ?? 0) >= seuil
+  );
+}
+
+/** Semaine sans étude à rapporter : un résultat normal, rédigé sans le modèle. */
+export function journalVide(seuil) {
+  return {
+    titre_une: 'Rien cette semaine',
+    chapeau: `Aucune étude n'est à rapporter cette semaine : aucune n'atteint le seuil de pertinence pour le centre (${seuil}/5) avec une fiche utilisable.`,
+    a_la_une: [],
+    en_bref: [],
+  };
+}
+
 export function validerJournal(journal) {
   const erreurs = validerSchema(journal, JOURNAL_TOOL.input_schema);
   if (erreurs.length) return erreurs;
@@ -99,7 +121,7 @@ function lien(fiche) {
  * Met en forme le journal en Markdown. Les liens et métadonnées viennent des fiches
  * (par fiche_id), jamais du texte généré ; les ids invalides ou dupliqués sont ignorés.
  */
-export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, total = fiches.length }) {
+export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, total = fiches.length, retractees = [] }) {
   const vus = new Set();
   const resolve = (id) => {
     if (!Number.isInteger(id) || id < 0 || id >= fiches.length || vus.has(id)) return null;
@@ -114,19 +136,22 @@ export function journalToMarkdown(journal, fiches, { runDate, dashboardUrl, tota
       [
         `### ${a.titre_journal}`,
         '',
+        // Opinion ou niveau indéterminé : à la une seulement avec cet avertissement.
+        ...(NIVEAUX_A_SIGNALER.includes(f.niveau_de_preuve) ? [`**⚠️ Niveau de preuve : ${f.niveau_de_preuve}.**`, ''] : []),
         a.texte,
         '',
         ...(a.pour_la_borbolla ? [`**Pour La Borbolla** : ${a.pour_la_borbolla}`, ''] : []),
-        `*${f.type_etude} — ${f.thematique} — ${lien(f)}*`.replace(/ — \*$/, '*'),
+        `*${[ligneEtiquettes(f), f.thematique, lien(f)].filter(Boolean).join(' — ')}*`,
       ].join('\n')
     );
 
   const bref = (journal.en_bref || [])
     .map((b) => ({ b, f: resolve(b.fiche_id) }))
     .filter((x) => x.f)
-    .map(({ b, f }) => `- ${b.phrase} (${f.thematique}${lien(f) ? ` — ${lien(f)}` : ''})`);
+    .map(({ b, f }) => `- ${b.phrase} (${[f.thematique, ligneEtiquettes(f), lien(f)].filter(Boolean).join(' — ')})`);
 
   const parts = [`# ${journal.titre_une}`, '', `*Veille La Borbolla — ${runDate}*`, '', journal.chapeau];
+  if (retractees.length) parts.push('', blocRetractations(retractees));
   if (une.length) parts.push('', '## À la une', '', une.join('\n\n---\n\n'));
   if (bref.length) parts.push('', '## En bref', '', bref.join('\n'));
   parts.push('', '---', '', `${total} étude(s) analysée(s) cette semaine ; toutes les fiches détaillées sont en pièce jointe.${dashboardUrl ? ` Tableau de bord : ${dashboardUrl}` : ''}`);

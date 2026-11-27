@@ -1,5 +1,13 @@
 import 'dotenv/config';
 
+/** Entier d'environnement borné ; une valeur vide donne le défaut, une valeur fausse arrête. */
+export function entier(brut, defaut, min, max) {
+  if (brut === undefined || brut === '') return defaut;
+  const n = Number(brut);
+  if (!Number.isInteger(n) || n < min || n > max) throw new Error(`Valeur de configuration invalide : « ${brut} » (entier de ${min} à ${max}).`);
+  return n;
+}
+
 export const config = {
   anthropicApiKey: process.env.ANTHROPIC_API_KEY || '',
 
@@ -29,6 +37,12 @@ export const config = {
   recipients: [process.env.RECIPIENT_EMAIL_1, process.env.RECIPIENT_EMAIL_2].filter(Boolean),
 
   dashboardUrl: process.env.DASHBOARD_URL || '',
+
+  // Sous ce score de pertinence_centre, une fiche n'entre ni « À la une » ni « En bref ».
+  seuilPertinence: entier(process.env.SEUIL_PERTINENCE_CENTRE, 3, 0, 5),
+
+  // Sous ce nombre de participants, une étude primaire est « exploratoire ».
+  seuilPetitEchantillon: entier(process.env.SEUIL_PETIT_ECHANTILLON, 30, 1, 100000),
 
   // Hub d'agents : envoi actif seulement si HUB_ENABLED === 'true'.
   hub: {

@@ -67,7 +67,7 @@ async function fetchText(url) {
  */
 const EXCLUSIONS =
   'NOT (animals[MeSH Terms] NOT humans[MeSH Terms]) ' +
-  'NOT (zebrafish[Title/Abstract] OR mice[Title/Abstract] OR mouse[Title/Abstract] OR rats[Title/Abstract] ' +
+  'NOT (zebrafish[Title/Abstract] OR mice[Title/Abstract] OR mouse[Title/Abstract] OR rat[Title/Abstract] OR rats[Title/Abstract] ' +
   'OR drosophila[Title/Abstract] OR "C. elegans"[Title/Abstract] OR "in vitro"[Title/Abstract] OR "cell line"[Title/Abstract]) ' +
   'NOT "Practice Guideline"[Publication Type]';
 
@@ -188,6 +188,8 @@ export function parseArticlesXml(xml) {
   const articleBlocks = xml.match(/<PubmedArticle>[\s\S]*?<\/PubmedArticle>/g) || [];
 
   for (const brut of articleBlocks) {
+    // Avis de rétractation lié à cet article (lu avant de retirer les commentaires).
+    const retracte = /RefType="RetractionIn"/.test(brut);
     // La bibliographie et les commentaires liés portent leurs propres PMID et DOI.
     const block = brut
       .replace(/<ReferenceList>[\s\S]*<\/ReferenceList>/g, '')
@@ -232,6 +234,7 @@ export function parseArticlesXml(xml) {
       authors,
       doi: articleDoi(block),
       publicationTypes,
+      retracte,
       url: pmid ? `https://pubmed.ncbi.nlm.nih.gov/${pmid}/` : null,
       source: 'PubMed',
     });

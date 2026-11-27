@@ -7,6 +7,7 @@ const piege = '</script><script>alert(1)</script><!--<img src=x onerror=alert(2)
 const fiche = (o = {}) => ({
   titre: piege, auteurs: piege, type_etude: piege, resultat_principal: piege, mecanisme_evalue: piege,
   niveau_de_preuve_et_limites: piege, angle_brana_sana: piege, pertinence_brana_sana: '<b>', lien: 'javascript:alert(3)',
+  niveau_de_preuve: piege, confiance_extraction: piege, justification_niveau: piege,
   thematique_id: 'sommeil', thematique: piege, ajoute_le: '2026-11-27', ...o,
 });
 
