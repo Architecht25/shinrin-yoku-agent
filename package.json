@@ -10,7 +10,7 @@
     "veille:essai": "node src/index.js --dry-run",
     "export": "node src/export.js",
     "dashboard": "node src/exportHtml.js",
-    "test": "node --test"
+    "test": "node --test test/*.test.js"
   },
   "engines": {
     "node": ">=20"
