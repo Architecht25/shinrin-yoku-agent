@@ -67,7 +67,7 @@ async function fetchText(url) {
  */
 const EXCLUSIONS =
   'NOT (animals[MeSH Terms] NOT humans[MeSH Terms]) ' +
-  'NOT (zebrafish[Title/Abstract] OR mice[Title/Abstract] OR mouse[Title/Abstract] OR rats[Title/Abstract] ' +
+  'NOT (zebrafish[Title/Abstract] OR mice[Title/Abstract] OR mouse[Title/Abstract] OR rat[Title/Abstract] OR rats[Title/Abstract] ' +
   'OR drosophila[Title/Abstract] OR "C. elegans"[Title/Abstract] OR "in vitro"[Title/Abstract] OR "cell line"[Title/Abstract]) ' +
   'NOT "Practice Guideline"[Publication Type]';
 

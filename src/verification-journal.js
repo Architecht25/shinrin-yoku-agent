@@ -64,7 +64,13 @@ export function filtrerJournal(journal, segments, rejetes, fiches) {
       }))
       .filter((a) => a.texte),
     en_bref: journal.en_bref
-      .map((b, n) => ({ fiche_id: b.fiche_id, phrase: intact(`bref.${n}`, b.phrase) }))
+      .map((b, n) => ({
+        fiche_id: b.fiche_id,
+        // Même règle qu'à la une : sans son début, la phrase n'est plus lisible.
+        phrase: rejetes.has(`bref.${n}.0`)
+          ? decouperPhrases(fiches[b.fiche_id].resultat_principal)[0]
+          : intact(`bref.${n}`, b.phrase),
+      }))
       .filter((b) => b.phrase),
   };
 }

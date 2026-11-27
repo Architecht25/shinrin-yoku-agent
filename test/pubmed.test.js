@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseArticlesXml } from '../src/sources/pubmed.js';
+import { parseArticlesXml, withExclusions } from '../src/sources/pubmed.js';
 
 const article = ({ pmid = '111', ids = '<ArticleId IdType="doi">10.1/ARTICLE</ArticleId>', eloc = '' } = {}) => `
 <PubmedArticle>
@@ -54,4 +54,8 @@ test('DOI pris dans ELocationID à défaut', () => {
 test('plusieurs articles restent séparés', () => {
   const liste = parseArticlesXml(article() + article({ pmid: '222', ids: '' }));
   assert.deepEqual(liste.map((a) => [a.pmid, a.doi]), [['111', '10.1/ARTICLE'], ['222', null]]);
+});
+
+test('les études chez le rat sont exclues, au singulier comme au pluriel', () => {
+  assert.match(withExclusions('x'), /rat\[Title\/Abstract\] OR rats\[Title\/Abstract\]/);
 });

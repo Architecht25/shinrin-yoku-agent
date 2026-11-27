@@ -101,6 +101,12 @@ test('première phrase supprimée : le texte reprend le résultat de la fiche', 
   assert.equal(journal.a_la_une[0].texte, 'Marche de 30 minutes.');
 });
 
+test('« En bref » sans sa première phrase : la ligne reprend le résultat de la fiche', async () => {
+  const deux = { ...brouillon, en_bref: [{ fiche_id: 1, phrase: 'Début inventé. étude de petite portée, à confirmer.' }] };
+  const { journal } = await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [{ id: 'bref.0.0', raison: 'absent' }] })), deux, fiches, decrireFiches(fiches));
+  assert.equal(journal.en_bref[0].phrase, 'Association observée.');
+});
+
 test('contrôle du journal impossible : lève, pour retomber sur le rapport détaillé', async () => {
   await assert.rejects(verifierJournal(clientSimule(reponseOutil({})), brouillon, fiches, decrireFiches(fiches)));
 });
