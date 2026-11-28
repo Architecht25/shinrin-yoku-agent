@@ -27524,8 +27524,8 @@
       "auteurs": "Teles Sabrina Amabili Marinho, Barbosa Brena Barreto, Teixeira Lucas Ponte, Sampaio Helena Alves de Carvalho, Freire Walter Breno de Souza, Adriano Lia Silveira, Carioca Antônio Augusto Ferreira",
       "date": "2026",
       "mecanisme_evalue": "Qualité du sommeil, chronotype, décalage horaire social (social jet lag) et leurs liens avec des marqueurs cardiométaboliques (tour de taille, IMC, consommation alimentaire)",
-      "resultat_principal": "Chez des étudiants en nutrition, une mauvaise qualité de sommeil et un chronotype tardif sont associés à une consommation plus élevée d'aliments ultra-transformés ; le tour de taille est corrélé positivement à une moins bonne qualité de sommeil et à une durée de sommeil plus courte, et l'IMC est associé positivement à une durée de sommeil plus courte.",
-      "niveau_de_preuve_et_limites": "Étude transversale observationnelle sur 243 étudiants en nutrition d'institutions publiques et privées de Fortaleza (Brésil) ; les analyses reposent sur des corrélations et une régression linéaire multiple ajustée, ce qui ne permet pas d'établir de causalité ; le résumé ne précise pas d'autres limites méthodologiques (pas de mention explicite de biais de sélection, d'auto-déclaration ou de représentativité au-delà de la population étudiée). [Vérification automatique : à corriger, relire à la source avant tout usage.]",
+      "resultat_principal": "Chez des étudiants en nutrition, un chronotype plus tardif est associé à une consommation plus élevée d'aliments ultra-transformés. Le tour de taille est corrélé à une moins bonne qualité de sommeil et à une durée de sommeil plus courte, et l'IMC est associé à une durée de sommeil plus courte.",
+      "niveau_de_preuve_et_limites": "Étude transversale observationnelle sur 243 étudiants en nutrition d'institutions publiques et privées de Fortaleza (Brésil) ; les analyses reposent sur des corrélations et une régression linéaire multiple ajustée, ce qui ne permet pas d'établir de causalité ; le résumé ne précise pas d'autres limites méthodologiques (pas de mention explicite de biais de sélection, d'auto-déclaration ou de représentativité au-delà de la population étudiée).",
       "angle_brana_sana": "Les résultats renforcent l'importance de programmes combinant hygiène du sommeil et alimentation équilibrée (moins d'aliments transformés), en cohérence avec les séjours de repos et de reconnexion aux rythmes naturels proposés par le centre, pour un public jeune adulte sensibilisé à la prévention cardiométabolique.",
       "pertinence_centre": 3,
       "type_etude": "étude observationnelle",
@@ -27542,11 +27542,11 @@
       "justification_niveau": "Publication Type PubMed : Observational Study.",
       "effectif": 243,
       "verification": {
-        "statut": "à corriger",
-        "raison": "Le résultat principal contient une erreur factuelle : le résumé indique que l'IMC est associé à une durée de sommeil plus courte, non au tour de taille ni à une « qualité de sommeil » combinée comme présenté ; de plus la fiche omet la corrélation entre tour de taille et durée de sommeil courte mentionnée séparément dans le résumé. Le reste (type d'étude, niveau de preuve, limites) est globalement fidèle.",
-        "journal": "bref"
+        "statut": "confirmé",
+        "raison": "",
+        "journal": "une"
       },
-      "confiance_extraction": "à confirmer"
+      "confiance_extraction": "vérifié"
     },
     {
       "titre": "Thin illusion: a cross-sectional study on normal weight obesity among adults in a subdivision of Northern Haryana.",
@@ -27583,8 +27583,8 @@
       "date": "2026 Nov 15",
       "mecanisme_evalue": "Régularité du sommeil (durée et index de régularité du sommeil, SRI) et risque d'hypertension incidente",
       "resultat_principal": "Une irrégularité du sommeil plus marquée (SD de durée de sommeil >90 min, ou quintile le plus bas de SRI) est associée à un risque plus élevé d'hypertension incidente (HR 1,18 et 1,40 respectivement) par rapport aux personnes ayant un sommeil plus régulier.",
-      "niveau_de_preuve_et_limites": "Étude de cohorte prospective observationnelle (UK Biobank, n=55 572), ajustée sur de nombreux facteurs démographiques, socioéconomiques et liés au mode de vie, mais ne permettant pas d'établir de lien causal entre irrégularité du sommeil et hypertension. [Vérification automatique : à corriger, relire à la source avant tout usage.]",
-      "angle_brana_sana": "Les programmes de repos et de sommeil du centre peuvent intégrer une sensibilisation à la régularité des horaires de sommeil (et non uniquement sa durée) comme facteur potentiellement protecteur pour la santé cardiovasculaire.",
+      "niveau_de_preuve_et_limites": "Étude de cohorte prospective observationnelle (UK Biobank, n=55 572), ajustée sur de nombreux facteurs démographiques, socioéconomiques et liés au mode de vie, mais ne permettant pas d'établir de lien causal entre irrégularité du sommeil et hypertension. Prépublication, non relue par des pairs. [Vérification automatique : à corriger, relire à la source avant tout usage.]",
+      "angle_brana_sana": "Les programmes de repos et de sommeil du centre peuvent intégrer une sensibilisation à la régularité des horaires de sommeil (et non uniquement sa durée), cette régularité étant associée à un risque moindre d'hypertension dans cette étude, sans que la causalité soit établie.",
       "pertinence_centre": 4,
       "type_etude": "étude observationnelle",
       "doi": "10.64898/2026.11.12.26367978",
@@ -27602,7 +27602,7 @@
       "effectif": 55572,
       "verification": {
         "statut": "à corriger",
-        "raison": "La fiche affirme à tort que l'étude est une prépublication non relue par des pairs alors que le résumé ne le précise pas (seul le type PubMed \"Preprint\" l'indique, mais rien dans le résumé ne confirme l'absence de relecture par les pairs, et ceci relève d'une inférence non fondée sur le résumé lui-même). L'angle d'application emploie le terme \"protecteur\" qui suggère une causalité non établie par cette étude observationnelle.",
+        "raison": "L'angle d'application utilise la formule « facteur potentiellement protecteur », ce qui attribue une causalité/protection que l'étude observationnelle ne permet pas d'établir ; le résumé parle seulement d'association et de « cible comportementale modifiable potentielle ». Les autres points (type d'étude, chiffres, limites, niveau de preuve) sont fidèles au résumé.",
         "journal": "bref"
       },
       "confiance_extraction": "à confirmer"

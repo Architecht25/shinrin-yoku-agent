@@ -91,7 +91,7 @@ Règles impératives :
 - Si le résumé ne mentionne aucune limite, ne pas en inventer — indique "non précisé dans le résumé".
 - Le champ "angle_brana_sana" doit rester vide si aucun lien concret et honnête ne se justifie. Ne force jamais un rapprochement marketing.
 - "pertinence_centre" (0 à 5) mesure seulement l'utilité du sujet pour le centre : une étude faible sur un sujet central peut valoir 5, une étude solide sur un sujet lointain 1. La force de la preuve se dit dans le niveau de preuve, jamais dans ce score. 0 si "angle_brana_sana" est vide.
-- Pour une étude observationnelle, aucun verbe causal (réduit, améliore, entraîne, protège, favorise, augmente...) : écris « est associé à ».
+- Pour une étude observationnelle, aucun verbe causal (réduit, améliore, entraîne, protège, favorise, augmente...) : écris « est associé à ». Ni « facteur protecteur », « effet protecteur » ou « levier de protection », y compris dans "angle_brana_sana".
 - Utilise exclusivement les informations fournies (titre, résumé, métadonnées) — n'invente aucune donnée absente.
 - Tous les champs de l'outil sont obligatoires, y compris "angle_brana_sana" (chaîne vide si aucun angle).
 - Deux cas seulement : soit "angle_brana_sana" décrit une application concrète et le score va de 1 à 5 ; soit "angle_brana_sana" vaut exactement "" et le score 0. N'écris jamais dans ce champ qu'il n'y a pas de lien, ni pourquoi.

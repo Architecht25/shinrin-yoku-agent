@@ -47,7 +47,7 @@ Règles impératives :
 - Une fiche avec "eligible_a_la_une" à false ne va jamais à la une (au plus « En bref »).
 - N'écris pas les étiquettes (type, niveau de preuve) : elles sont ajoutées automatiquement depuis les fiches.
 - Une fiche avec "prepublication" à true n'a pas été relue par des pairs : ne la présente jamais comme solide, établie ou publiée dans une revue.
-- Aucun verbe causal pour une étude observationnelle.
+- Aucun verbe causal pour une étude observationnelle, ni « facteur protecteur », « effet protecteur » ou « levier de protection ».
 - Recopie les chiffres exactement comme dans les fiches, sans les arrondir (jamais « plus de ... »), ou n'en mets pas. Dans la première phrase de chaque texte, n'en mets aucun.
 - Ni les titres ni le chapeau ne disent qu'une chose est « confirmée », « prouvée » ou « démontrée ». Ne compte pas les études dans le chapeau.
 - N'utilise que le contenu des fiches. Aucun chiffre, aucune conclusion ni application inventés. Si le lien avec La Borbolla n'est pas honnête, ne mets pas l'étude à la une.

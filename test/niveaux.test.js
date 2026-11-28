@@ -57,7 +57,7 @@ test('verbes causaux repérés ; associations, négations, buts et adjectifs adm
 async function chaine(modele, article, avis = {}) {
   const brute = await extractFiche(clientSimule(reponseOutil(ficheModele(modele))), article);
   const { fiche, preuve } = separerPreuve(brute, article);
-  const verdict = avis instanceof Error ? avis : reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', niveau_corrige: '', justification_niveau_corrigee: '', ...avis });
+  const verdict = avis instanceof Error ? avis : reponseOutil({ verdict: 'confirmé', raison: '', type_etude_corrige: '', resultat_principal_corrige: '', limites_corrigees: '', angle_corrige: '', niveau_corrige: '', justification_niveau_corrigee: '', ...avis });
   return verifierFiche(clientSimule(verdict), fiche, preuve);
 }
 const article = articleFactice({ abstract: resume });
@@ -95,4 +95,29 @@ test('étude observationnelle : aucun verbe causal, ni dans le résultat ni dans
   assert.equal(fiche.angle_brana_sana, '');
   assert.equal(fiche.pertinence_centre, 0);
   assert.equal(fiche.confiance_extraction, 'à confirmer');
+});
+
+test('« protecteur » : formules causales repérées, mention d’un facteur ou négation admises', () => {
+  for (const phrase of ['La régularité est un facteur potentiellement protecteur pour le cœur.', 'La nature a un effet protecteur.', 'Le séjour sert de levier de protection de la santé.', 'La sieste joue un rôle nettement protecteur.', 'Des horaires protecteurs contre l’hypertension.']) {
+    assert.ok(verbeCausal(phrase), phrase);
+  }
+  for (const phrase of ['Les facteurs protecteurs identifiés résonnent avec le projet.', 'L’étude n’établit pas un effet protecteur.', 'Le jardin est vu comme un lieu de confort et de protection.', 'Le port d’équipements de protection est décrit.']) {
+    assert.equal(verbeCausal(phrase), null, phrase);
+  }
+});
+
+test('angle réécrit par le relecteur : l’étude garde son score ; sans réécriture, la phrase causale est retirée', async () => {
+  const modele = { type_etude: 'étude observationnelle', ...proposition(), effectif: 400, angle_brana_sana: 'Des horaires réguliers comme facteur potentiellement protecteur.', pertinence_centre: 4 };
+  const { fiche } = await chaine(modele, article, { verdict: 'à corriger', raison: 'causalité dans l’angle', angle_corrige: 'Un atelier sur la régularité des horaires.' });
+  assert.equal(fiche.angle_brana_sana, 'Un atelier sur la régularité des horaires.');
+  assert.equal(fiche.pertinence_centre, 4);
+  assert.equal(fiche.verification.journal, 'bref');
+  const sans = await chaine(modele, article);
+  assert.equal(sans.fiche.angle_brana_sana, '');
+  assert.equal(sans.fiche.verification.statut, 'à corriger');
+});
+
+test('le relecteur ne crée pas d’angle', async () => {
+  const { fiche } = await chaine({ type_etude: 'étude observationnelle', ...proposition(), angle_brana_sana: '', pertinence_centre: 0 }, article, { verdict: 'à corriger', raison: 'x', angle_corrige: 'Nouvel angle.' });
+  assert.equal(fiche.angle_brana_sana, '');
 });

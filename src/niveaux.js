@@ -135,10 +135,17 @@ const CONJUGUES = [
 ];
 const INFINITIFS = ['réduire', 'diminuer', 'augmenter', 'améliorer', 'entraîner', 'provoquer', 'causer', 'protéger', 'favoriser', 'prévenir', 'aggraver', 'induire'];
 const PARTICIPES = ['diminué', 'augmenté', 'amélioré', 'entraîné', 'provoqué', 'causé', 'protégé', 'favorisé', 'prévenu', 'aggravé'];
+// Un lien causal se dit aussi sans verbe. « Facteurs protecteurs identifiés », seul, reste admis.
+const PROTECTEUR = 'protect(?:eurs?|rices?)';
+const FORMULES = [
+  `(?:effets?|rôles?|actions?|leviers?|pouvoirs?|vertus?) (?:\\p{L}+ment )?(?:de protection|${PROTECTEUR})`,
+  `(?:potentiellement|possiblement|probablement) ${PROTECTEUR}`,
+  `${PROTECTEUR} (?:pour|contre|vis-à-vis)`,
+];
 const BORD = '(?<![\\p{L}-])';
 const FIN = '(?![\\p{L}-])';
 const VERBE = new RegExp(
-  `${BORD}(?:${[...CONJUGUES, ...INFINITIFS].join('|')}|(?:a|ont|avait|aurait|auraient) (?:\\p{L}+ment )?(?:${PARTICIPES.join('|')})|perme(?:t|ttent|ttrait) (?:de|d['’])|condui(?:t|sent) à)${FIN}`,
+  `${BORD}(?:${[...CONJUGUES, ...INFINITIFS].join('|')}|(?:a|ont|avait|aurait|auraient) (?:\\p{L}+ment )?(?:${PARTICIPES.join('|')})|perme(?:t|ttent|ttrait) (?:de|d['’])|condui(?:t|sent) à|${FORMULES.join('|')})${FIN}`,
   'giu'
 );
 // Emplois qui n'affirment rien : adjectif ou nom, but poursuivi, question ou négation.
@@ -146,7 +153,7 @@ const ADJECTIF_OU_NOM = /(?:risque|score|niveau|taux|temps|nombre|volume|échant
 const BUT = /(?:pour|visant à|vise à|afin de|afin d['’]|chercher? à)\s+(?:\p{L}+ment\s+)?$/iu;
 const NON_AFFIRME = /(?<![\p{L}])(?:pas|aucun|aucune|sans|ni|si)(?![\p{L}])|(?<![\p{L}])s['’]il/iu;
 
-/** Premier verbe causal affirmé dans un texte français, ou null. */
+/** Premier verbe ou formule causale affirmé dans un texte français, ou null. */
 export function verbeCausal(texte) {
   for (const proposition of String(texte || '').split(/[,;:.!?()]|\s(?:mais|tandis que|alors que)\s/u)) {
     for (const m of proposition.matchAll(VERBE)) {
