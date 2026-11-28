@@ -121,3 +121,12 @@ test('le relecteur ne crée pas d’angle', async () => {
   const { fiche } = await chaine({ type_etude: 'étude observationnelle', ...proposition(), angle_brana_sana: '', pertinence_centre: 0 }, article, { verdict: 'à corriger', raison: 'x', angle_corrige: 'Nouvel angle.' });
   assert.equal(fiche.angle_brana_sana, '');
 });
+
+test('« étaient des facteurs protecteurs » repéré ; nommer des facteurs reste admis', () => {
+  for (const phrase of ['Les fruits et l’activité étaient des facteurs protecteurs.', 'Le sommeil constitue un facteur de protection.', 'Trois habitudes sont identifiées comme facteurs protecteurs.']) {
+    assert.ok(verbeCausal(phrase), phrase);
+  }
+  for (const phrase of ['Les facteurs protecteurs identifiés résonnent avec le projet.', 'Ces habitudes ne sont pas des facteurs protecteurs démontrés.', 'L’étude décrit des facteurs de protection.']) {
+    assert.equal(verbeCausal(phrase), null, phrase);
+  }
+});
