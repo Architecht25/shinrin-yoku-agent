@@ -44,3 +44,17 @@ test('avertissement visible sur la fiche, le journal, le tableau de bord et le h
   assert.match(buildHubPayload({ journal: { chapeau: 'C', a_la_une: [], en_bref: [] }, body: 'b', fiches: [], runId: 'r', ...options }).summary, /^⚠️ 1 publication\(s\) rétractée/);
   assert.match(buildHtml([r]), /badge-retractation/);
 });
+
+test('un lot refusé n’annule pas la vérification des autres', async () => {
+  const store = { fiches: Array.from({ length: 250 }, (_, i) => fiche(String(i + 1), '2026-11-20')) };
+  const tailles = [];
+  const parPmids = async (ids) => {
+    tailles.push(ids.length);
+    if (ids[0] === '101') throw new Error('HTTP 400');
+    return ids.map((pmid) => ({ pmid, publicationTypes: pmid === '5' || pmid === '230' ? ['Retracted Publication'] : [] }));
+  };
+  const trouvees = await verifierRetractations(store, '2026-11-27', parPmids);
+  assert.deepEqual(tailles, [100, 100, 50]);
+  assert.deepEqual(trouvees.map((f) => f.pmid), ['5', '230']);
+  assert.equal(store.fiches[150].avertissement_retractation, undefined);
+});

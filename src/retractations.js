@@ -1,3 +1,5 @@
+import { LOT_EFETCH } from './sources/pubmed.js';
+
 /**
  * Rétractations : exclusion à la collecte, et revérification à chaque run des fiches des
  * douze dernières semaines.
@@ -21,18 +23,29 @@ export async function verifierRetractations(store, runDate, parPmids) {
     (f) => f.pmid && f.statut !== 'extraction échouée' && !f.avertissement_retractation && f.ajoute_le >= limite
   );
   if (!suivies.length) return [];
-  try {
-    const articles = await parPmids(suivies.map((f) => f.pmid));
-    const retractes = new Set(articles.filter(estRetracte).map((a) => a.pmid));
-    if (articles.length < suivies.length) {
-      console.error(`[veille] Rétractations : ${suivies.length - articles.length} fiche(s) non retrouvée(s) sur PubMed, à surveiller.`);
+  // Lot par lot : un lot refusé ne fait pas perdre la vérification des autres.
+  const articles = [];
+  const verifiees = [];
+  let erreur;
+  for (let i = 0; i < suivies.length; i += LOT_EFETCH) {
+    const lot = suivies.slice(i, i + LOT_EFETCH);
+    try {
+      articles.push(...(await parPmids(lot.map((f) => f.pmid))));
+      verifiees.push(...lot);
+    } catch (err) {
+      erreur = err;
     }
-    const nouvelles = suivies.filter((f) => retractes.has(f.pmid));
-    nouvelles.forEach((f) => { f.avertissement_retractation = { detectee_le: runDate }; });
-    console.log(`[veille] Rétractations : ${suivies.length} fiche(s) revérifiée(s), ${nouvelles.length} nouvelle(s) rétractation(s).`);
-    return nouvelles;
-  } catch (err) {
-    console.error(`[veille] Revérification des rétractations impossible, reportée au prochain run : ${err.message}`);
-    return [];
   }
+  if (erreur) {
+    console.error(`[veille] Rétractations : ${suivies.length - verifiees.length} fiche(s) non revérifiée(s), reportée(s) au prochain run : ${erreur.message}`);
+  }
+  if (!verifiees.length) return [];
+  const retractes = new Set(articles.filter(estRetracte).map((a) => a.pmid));
+  if (articles.length < verifiees.length) {
+    console.error(`[veille] Rétractations : ${verifiees.length - articles.length} fiche(s) non retrouvée(s) sur PubMed, à surveiller.`);
+  }
+  const nouvelles = verifiees.filter((f) => retractes.has(f.pmid));
+  nouvelles.forEach((f) => { f.avertissement_retractation = { detectee_le: runDate }; });
+  console.log(`[veille] Rétractations : ${verifiees.length} fiche(s) revérifiée(s) sur ${suivies.length}, ${nouvelles.length} nouvelle(s) rétractation(s).`);
+  return nouvelles;
 }
