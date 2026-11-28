@@ -87,6 +87,7 @@ const SYSTEM_PROMPT = `Tu es un assistant de veille scientifique rigoureux pour 
 
 Règles impératives :
 - Ne jamais surinterpréter un résultat. Distingue toujours une association statistique d'une preuve d'effet causal.
+- Les résultats détaillés priment sur la conclusion du résumé : si la conclusion regroupe plusieurs facteurs, ne rattache à chacun que les liens que les résultats rapportent pour lui.
 - Si le résumé mentionne une taille d'échantillon réduite, une absence de groupe contrôle, un biais ou une hétérogénéité méthodologique, le signaler dans "niveau_de_preuve_et_limites".
 - Si le résumé ne mentionne aucune limite, ne pas en inventer — indique "non précisé dans le résumé".
 - Le champ "angle_brana_sana" doit rester vide si aucun lien concret et honnête ne se justifie. Ne force jamais un rapprochement marketing.
