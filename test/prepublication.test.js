@@ -2,6 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { estPrepublication } from '../src/niveaux.js';
 import { extractFiche } from '../src/extract.js';
+import { verifierFiche } from '../src/verification.js';
 import { journalToMarkdown, decrireFiches } from '../src/digest.js';
 import { buildRunMarkdown } from '../src/markdown.js';
 import { buildHtml } from '../src/exportHtml.js';
@@ -34,4 +35,19 @@ test('fiches détaillées (sélection et fiche), tableau de bord et rédacteur i
   assert.equal(md.match(/Prépublication, non relue par des pairs/g).length, 2);
   assert.match(buildHtml([fiche]), /f\.prepublication \?/);
   assert.equal(decrireFiches([fiche])[0].prepublication, true);
+});
+
+test('le relecteur est informé que le type PubMed établit la prépublication', async () => {
+  const envoye = async (publication_types) => {
+    const client = clientSimule(reponseOutil({}));
+    let requete;
+    const creer = client.messages.create;
+    client.messages.create = async (r) => { requete ??= r; return creer(r); };
+    await verifierFiche(client, ficheModele(), { titre_pubmed: 'T', publication_types, resume: 'R', sources_champs: {} });
+    return requete;
+  };
+  const avec = await envoye(['Journal Article', 'Preprint']);
+  assert.match(avec.messages[0].content, /Établi par PubMed : Prépublication, non relue par des pairs/);
+  assert.match(avec.system, /« Preprint » établit à lui seul/);
+  assert.doesNotMatch((await envoye(['Journal Article'])).messages[0].content, /Établi par PubMed/);
 });
