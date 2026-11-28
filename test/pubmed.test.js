@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parseArticlesXml, withExclusions } from '../src/sources/pubmed.js';
+import { parseArticlesXml, withExclusions, fetchWithRetry } from '../src/sources/pubmed.js';
 
 const article = ({ pmid = '111', ids = '<ArticleId IdType="doi">10.1/ARTICLE</ArticleId>', eloc = '' } = {}) => `
 <PubmedArticle>
@@ -58,4 +58,35 @@ test('plusieurs articles restent séparés', () => {
 
 test('les études chez le rat sont exclues, au singulier comme au pluriel', () => {
   assert.match(withExclusions('x'), /rat\[Title\/Abstract\] OR rats\[Title\/Abstract\]/);
+});
+
+/** Remplace fetch par une suite de réponses ; renvoie le résultat et le nombre d'appels. */
+async function avecReponses(reponses, fn) {
+  const origine = { fetch: globalThis.fetch, warn: console.warn };
+  let appels = 0;
+  globalThis.fetch = async () => {
+    const r = reponses[Math.min(appels++, reponses.length - 1)];
+    if (r instanceof Error) throw r;
+    return new Response(r === 200 ? 'ok' : '', { status: r });
+  };
+  console.warn = () => {};
+  try {
+    await fn(() => fetchWithRetry('https://exemple.test/efetch', { asJson: false, attendre: async () => {} }));
+    return appels;
+  } finally {
+    globalThis.fetch = origine.fetch;
+    console.warn = origine.warn;
+  }
+}
+
+test('erreurs passagères (400, 429, 503, réseau) : nouvel essai', async () => {
+  for (const panne of [400, 429, 503, new TypeError('fetch failed')]) {
+    const appels = await avecReponses([panne, 200], async (appeler) => assert.equal(await appeler(), 'ok'));
+    assert.equal(appels, 2);
+  }
+});
+
+test('erreur persistante : abandon après cinq essais ; 404 : aucun nouvel essai', async () => {
+  assert.equal(await avecReponses([400], (appeler) => assert.rejects(appeler, /HTTP 400 pour/)), 5);
+  assert.equal(await avecReponses([404], (appeler) => assert.rejects(appeler, /HTTP 404 pour/)), 1);
 });
