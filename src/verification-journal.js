@@ -133,8 +133,8 @@ export async function verifierJournal(client, journal, fiches, descriptions) {
   const segments = segmenter(candidat);
 
   const parFiche = descriptions.map((d) => valeursSource(JSON.stringify({ ...d, id: undefined, pertinence_centre: undefined })));
-  // Le chapeau peut aussi compter les études du journal.
-  const comptes = [fiches.length, candidat.a_la_une.length, candidat.a_la_une.length + candidat.en_bref.length];
+  // Le chapeau peut aussi compter les études du journal, au total ou par partie.
+  const comptes = [fiches.length, candidat.a_la_une.length, candidat.en_bref.length, candidat.a_la_une.length + candidat.en_bref.length];
   const globales = new Set([...parFiche.flatMap((v) => [...v]), ...comptes.map(String)]);
   const rejetes = new Map();
   // Un titre est jugé en entier, puis retiré en entier.

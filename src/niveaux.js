@@ -141,6 +141,8 @@ const FORMULES = [
   `(?:effets?|rôles?|actions?|leviers?|pouvoirs?|vertus?) (?:\\p{L}+ment )?(?:de protection|${PROTECTEUR})`,
   `(?:potentiellement|possiblement|probablement) ${PROTECTEUR}`,
   `${PROTECTEUR} (?:pour|contre|vis-à-vis)`,
+  // « étaient des facteurs protecteurs » affirme ; « les facteurs protecteurs identifiés » nomme.
+  `(?:est|sont|était|étaient|constitue(?:nt)?|représente(?:nt)?|apparaît|apparaissent|(?:identifiée?s? )?comme) (?:(?:un|une|des|de) )?facteurs? (?:de protection|${PROTECTEUR})`,
 ];
 const BORD = '(?<![\\p{L}-])';
 const FIN = '(?![\\p{L}-])';
