@@ -155,3 +155,11 @@ test('introduction : la phrase affirmative est retirée ; en première position,
   assert.equal(await sans('Une étude vient confirmer l’intérêt du repos. Comme souvent, prudence.'), '2 étude(s) retenue(s) cette semaine.');
   assert.equal(await sans('Rien n’est démontré à ce stade.'), 'Rien n’est démontré à ce stade.');
 });
+
+test('introduction : le nombre d’études « en bref » est un compte admis, un autre nombre non', async () => {
+  const trois = [0, 1, 2].map(() => ({ ...fiches[0], resultat_principal: 'Association.' }));
+  const j = { ...brouillon, chapeau: 'Une étude à la une. Deux autres études suivent.', a_la_une: [{ fiche_id: 0, titre_journal: 'T', texte: 'Texte.', pour_la_borbolla: '' }], en_bref: [{ fiche_id: 1, phrase: 'A.' }, { fiche_id: 2, phrase: 'B.' }] };
+  const lancer = async (chapeau) => (await verifierJournal(clientSimule(reponseOutil({ non_soutenues: [] })), { ...j, chapeau }, trois, decrireFiches(trois))).journal.chapeau;
+  assert.equal(await lancer(j.chapeau), j.chapeau);
+  assert.equal(await lancer('Une étude à la une. Neuf autres études suivent.'), 'Une étude à la une.');
+});
